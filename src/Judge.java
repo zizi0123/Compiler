@@ -65,7 +65,7 @@ public class Judge {
         }
         try {
             InputStream input = new FileInputStream(fileName);
-            MxCompiler.compile(input);
+            Compiler.compile(input);
         } catch (SyntaxError syntaxError) {
             System.err.println(syntaxError.message + "in line" + syntaxError.pos.getRow() + ", column" + syntaxError.pos.getCol());
             return !success;
