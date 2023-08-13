@@ -22,6 +22,7 @@ public interface ASTVisitor extends ConstType {
     public void visit(BreakStmtNode node);
     public void visit(ReturnStmtNode node);
     public void visit(ExprStmtNode node);
+    public void visit(VarDefStmtNode node);
 
     public void visit(ParenExprNode node);
     public void visit(ConstExprNode node);

@@ -8,7 +8,7 @@ public class PreOpExprNode extends ExprNode{
 
     public String op;
 
-    PreOpExprNode(Position pos){
+    public PreOpExprNode(Position pos){
         super(pos);
     }
 

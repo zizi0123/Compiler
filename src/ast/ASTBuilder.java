@@ -10,6 +10,7 @@ import grammar.MxParser;
 import grammar.MxParserBaseVisitor;
 import util.constValue.*;
 import util.error.SemanticError;
+import util.error.SyntaxError;
 import util.position.Position;
 import util.type.Type;
 import util.type.TypeName;
@@ -21,7 +22,9 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
 
         for (var defCtx : ctx.definition()) {
             DefinitionNode defNode = (DefinitionNode) visitDefinition(defCtx);
-            programNode.defNodes.add(defNode);
+            if (defNode != null) { //defCtx";" -> null
+                programNode.defNodes.add(defNode);
+            }
         }
         return programNode;
     }
@@ -33,7 +36,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         } else if (ctx.funcDef() != null) {
             return visitFuncDef(ctx.funcDef());
         } else if (ctx.varDef() != null) {
-            return visitVarDef(ctx.varDef());
+            return ((VarDefStmtNode) visitVarDef(ctx.varDef())).varDefNode;
         }
         return null;
     }
@@ -79,11 +82,11 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         Position pos = new Position(ctx);
         ClassDefNode classDefNode = new ClassDefNode(pos, ctx.Identifier().getText());
         for (var varDefCtx : ctx.varDef()) {
-            VarDefNode node = (VarDefNode) visitVarDef(varDefCtx);
+            VarDefNode node = ((VarDefStmtNode) visitVarDef(varDefCtx)).varDefNode;
 //            classDefNode.varDefs.add(node);
             for (var var : node.vars) {
                 if (classDefNode.members.containsKey(var.name)) {
-                    throw new SemanticError("class " + classDefNode.className + "already has member " + var.name);
+                    throw new SemanticError("class " + classDefNode.className + "already has member " + var.name, var.pos);
                 }
                 classDefNode.members.put(var.name, var);
             }
@@ -91,13 +94,13 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         for (var funcDefCtx : ctx.funcDef()) {
             FuncDefNode node = (FuncDefNode) visitFuncDef(funcDefCtx);
             if (classDefNode.functions.containsKey(node.funcName)) {
-                throw new SemanticError("class " + classDefNode.className + "already has function " + node.funcName);
+                throw new SemanticError("class " + classDefNode.className + "already has function " + node.funcName, node.pos);
             }
             classDefNode.functions.put(node.funcName, node);
         }
         if (!ctx.constructorDef().isEmpty()) {
             if (ctx.constructorDef().size() > 1) {
-                throw new SemanticError("class" + classDefNode.className + " has more than one constructor ");
+                throw new SemanticError("class" + classDefNode.className + " has more than one constructor ", new Position(ctx.constructorDef(0)));
             }
             if (ctx.constructorDef().isEmpty()) {
                 classDefNode.constructor = null;
@@ -129,7 +132,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
             node.type = type;
             varDefNode.vars.add(node);
         }
-        return varDefNode;
+        return new VarDefStmtNode(varDefNode, pos);
     }
 
 
@@ -200,15 +203,15 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         Position pos = new Position(ctx);
         ForStmtNode forStmtNode = new ForStmtNode(pos);
         if (ctx.init != null) {
-            forStmtNode.initVarDef = (VarDefNode) visitVarDef(ctx.init);
+            forStmtNode.initVarDef = ((VarDefStmtNode) visitVarDef(ctx.init)).varDefNode;
         } else if (ctx.initt != null) {
             forStmtNode.initExpr = (ExprNode) visit(ctx.initt);
         }
-        if(ctx.condition!=null) {
+        if (ctx.condition != null) {
             forStmtNode.condition = (ExprNode) visit(ctx.condition);
         }
-        if(ctx.step!=null){
-        forStmtNode.step = (ExprNode) visit(ctx.step);
+        if (ctx.step != null) {
+            forStmtNode.step = (ExprNode) visit(ctx.step);
         }
         forStmtNode.stmts = (StmtNode) visitStatement(ctx.statement());
         return forStmtNode;
@@ -219,7 +222,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     public ASTNode visitReturnStmt(MxParser.ReturnStmtContext ctx) {
         Position pos = new Position(ctx);
         ReturnStmtNode returnStmtNode = new ReturnStmtNode(pos);
-        if(ctx.expression()!=null) {
+        if (ctx.expression() != null) {
             returnStmtNode.expr = (ExprNode) visit(ctx.expression());
         }
         return returnStmtNode;
@@ -242,18 +245,18 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     @Override
     public ASTNode visitExprStmt(MxParser.ExprStmtContext ctx) {
         Position pos = new Position(ctx);
-        if(ctx.expression() == null){
+        if (ctx.expression() == null) {
             return new ExprStmtNode(pos, null);
         }
-        return new ExprStmtNode(pos, (ExprNode) visit(ctx.expression()));
+        ExprNode exprNode = (ExprNode) visit(ctx.expression());
+        return new ExprStmtNode(pos, exprNode);
     }
-
 
 
     @Override
     public ASTNode visitParenExpr(MxParser.ParenExprContext ctx) {
         Position pos = new Position(ctx);
-        return new ParenExprNode(pos,(ExprNode) visit(ctx.expression()));
+        return new ParenExprNode(pos, (ExprNode) visit(ctx.expression()));
     }
 
     @Override
@@ -267,9 +270,10 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         }
     }
 
-    @Override public ASTNode visitVarExpr(MxParser.VarExprContext ctx){
+    @Override
+    public ASTNode visitVarExpr(MxParser.VarExprContext ctx) {
         Position pos = new Position(ctx);
-        VarExprNode varExprNode = new VarExprNode(pos,ctx.Identifier().getText());
+        VarExprNode varExprNode = new VarExprNode(pos, ctx.Identifier().getText());
         return varExprNode;
     }
 
@@ -280,6 +284,15 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         unaryExprNode.op = ctx.op.getText();
         unaryExprNode.exprNode = (ExprNode) visit(ctx.expression());
         return unaryExprNode;
+    }
+
+    @Override
+    public ASTNode visitPreOpExpr(MxParser.PreOpExprContext ctx) {
+        Position pos = new Position(ctx);
+        PreOpExprNode preOpExprNode = new PreOpExprNode(pos);
+        preOpExprNode.op = ctx.op.getText();
+        preOpExprNode.expr = (ExprNode) visit(ctx.expression());
+        return preOpExprNode;
     }
 
 
@@ -324,11 +337,16 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     }
 
 
+
+
     @Override
     public ASTNode visitFuncCallExpr(MxParser.FuncCallExprContext ctx) {
         Position pos = new Position(ctx);
         FuncCallExprNode funcCallExprNode = new FuncCallExprNode(pos);
         funcCallExprNode.func = (ExprNode) visit(ctx.expression(0));
+        if(funcCallExprNode.func instanceof VarExprNode function){
+            function.isFunction = true;
+        }
         for (int i = 1; i < ctx.expression().size(); ++i) {
             funcCallExprNode.args.add((ExprNode) visit(ctx.expression(i)));
         }
@@ -360,9 +378,22 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         NewExprNode newExprNode = new NewExprNode(pos);
         newExprNode.isArray = true;
         newExprNode.typeName = new TypeName(ctx.typeName());
-        newExprNode.arrDim = ctx.LBracket().size();
-        for (var exprCtx : ctx.expression()) {
-            newExprNode.exprs.add((ExprNode) visit(exprCtx));
+        newExprNode.arrDim = ctx.arrayIndex().size();
+        boolean nullAppeared = false,sizeAppeared = false;
+        for (var arrayIndexCtx : ctx.arrayIndex()) {
+            if (arrayIndexCtx.expression() == null) {
+                nullAppeared = true;
+            } else {
+                sizeAppeared = true;
+                if(!nullAppeared) {
+                    newExprNode.exprs.add((ExprNode) visit(arrayIndexCtx.expression()));
+                }else{
+                    throw new SyntaxError("invalid new array expression",pos);
+                }
+            }
+        }
+        if(!sizeAppeared){
+            throw new SyntaxError("invalid new array expression",pos);
         }
         return newExprNode;
     }
@@ -382,7 +413,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         } else if (ctx.IntConst() != null) {
             constValue = new IntConst(Integer.parseInt(ctx.IntConst().getText()));
         } else {
-            constValue = new StringConst(ctx.IntConst().getText());
+            constValue = new StringConst(ctx.StringConst().getText());
         }
         ConstExprNode constExprNode = new ConstExprNode(pos, constValue);
         return constExprNode;

@@ -27,10 +27,10 @@ public class SymbolCollector implements ASTVisitor {
     @Override
     public void visit(FuncDefNode node) {
         if (this.globalScope.getFunc(node.funcName) != null) {
-            throw new SemanticError("function" + node.funcName + "already exists!");
+            throw new SemanticError("function" + node.funcName + "already exists!",node.pos);
         }
         if (this.globalScope.getClass(node.funcName) != null) {
-            throw new SemanticError("class" + node.funcName + "already exists!");
+            throw new SemanticError("class" + node.funcName + "already exists!",node.pos);
         }
         this.globalScope.addFunc(node);
     }
@@ -38,10 +38,10 @@ public class SymbolCollector implements ASTVisitor {
     @Override
     public void visit(ClassDefNode node) {
         if (this.globalScope.getFunc(node.className) != null) {
-            throw new SemanticError("function" + node.className + "already exists!");
+            throw new SemanticError("function" + node.className + "already exists!",node.pos);
         }
         if (this.globalScope.getClass(node.className) != null) {
-            throw new SemanticError("class" + node.className + "already exists!");
+            throw new SemanticError("class" + node.className + "already exists!",node.pos);
         }
         this.globalScope.classes.put(node.className, node);
     }
@@ -103,6 +103,16 @@ public class SymbolCollector implements ASTVisitor {
 
     @Override
     public void visit(ExprStmtNode node) {
+
+    }
+
+    @Override
+    public void visit(VarDefStmtNode node) {
+
+    }
+
+    @Override
+    public void visit(ParenExprNode node) {
 
     }
 

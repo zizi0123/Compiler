@@ -16,6 +16,7 @@ public class TypeName {
             this.isClass = ctx.type().typeName().Identifier() != null;
         } else {
             isVoid = true;
+            typeName = "void";
         }
     }
 

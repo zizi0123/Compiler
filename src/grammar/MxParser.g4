@@ -10,7 +10,8 @@ definition
     :funcDef
     |classDef
     |varDef
-    |SemiColon;
+    |SemiColon
+    ;
 
 funcDef: returnType Identifier '(' functionParameterList ')' '{' blockStmt '}';
 returnType: type | Void;
@@ -36,13 +37,15 @@ statement
     |returnStmt
     |breakStmt
     |continueStmt
-    |exprStmt;
+    |exprStmt
+    ;
 
 ifStmt:If'('condition = expression')'trueStmt = statement(Else falseStmt = statement)?;
 whileStmt:While '('condition = expression')'statement;
 forStmt
     :For'('init = varDef condition = expression? SemiColon step = expression?')'statement
-    |For'('initt = expression? SemiColon condition = expression? SemiColon step = expression?')'statement;
+    |For'('initt = expression? SemiColon condition = expression? SemiColon step = expression?')'statement
+    ;
 returnStmt: Return expression? SemiColon;
 breakStmt: Break SemiColon;
 continueStmt: Continue SemiColon;
@@ -55,9 +58,9 @@ expression
     |New newType ('('')')?                                                                  #newExpr
     |expression'['expression']'                                                             #arrayExpr
     |expression'(' expression? (Comma expression)* ')'                                      #funcCallExpr
-    |expression '.' Identifier ')'                                                          #memberExpr
-    |<assoc = right> op = ('++'|'--') rhs = expression                                      #preOpExpr
+    |expression '.' Identifier                                                              #memberExpr
     |lhs = expression op = ('++'|'--')                                                      #unaryExpr
+    |<assoc = right> op = ('++'|'--') rhs = expression                                      #preOpExpr
     |<assoc = right> op = ('+' | '-' | '!' | '~') rhs =  expression                         #unaryExpr
     |lhs = expression op = ('*' | '/' | '%') rhs = expression                               #binaryExpr
     |lhs = expression op = ('+' | '-') rhs = expression                                     #binaryExpr
@@ -70,12 +73,16 @@ expression
     |lhs = expression op = '&&' rhs = expression                                            #binaryExpr
     |lhs = expression op = '||' rhs = expression                                            #binaryExpr
     |<assoc = right> lexpr = expression '?' mexpr = expression ':' rexpr = expression       #ternaryExpr
-    |<assoc = right> lhs = expression '=' rhs = expression                                  #assignExpr;
+    |<assoc = right> lhs = expression '=' rhs = expression                                  #assignExpr
+    ;
 
 
 newType
-    :Identifier                                                                             # newClass
-    | typeName LBracket expression RBracket (LBracket expression? RBracket)*                # newArray;
+    :typeName arrayIndex+                                                                   # newArray
+    |Identifier                                                                             # newClass
+    ;
+
+arrayIndex: LBracket expression? RBracket;
 
 
 

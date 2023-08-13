@@ -1,4 +1,4 @@
-// Generated from D:/HuaweiMoveData/Users/86180/Desktop/PPCA/Compiler/Mx-Compiler/src/grammar\MxParser.g4 by ANTLR 4.12.0
+// Generated from MxParser.g4 by ANTLR 4.13.0
 package grammar;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -352,6 +352,18 @@ public interface MxParserListener extends ParseTreeListener {
 	 */
 	void exitPreOpExpr(MxParser.PreOpExprContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code newArray}
+	 * labeled alternative in {@link MxParser#newType}.
+	 * @param ctx the parse tree
+	 */
+	void enterNewArray(MxParser.NewArrayContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code newArray}
+	 * labeled alternative in {@link MxParser#newType}.
+	 * @param ctx the parse tree
+	 */
+	void exitNewArray(MxParser.NewArrayContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code newClass}
 	 * labeled alternative in {@link MxParser#newType}.
 	 * @param ctx the parse tree
@@ -364,15 +376,13 @@ public interface MxParserListener extends ParseTreeListener {
 	 */
 	void exitNewClass(MxParser.NewClassContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code newArray}
-	 * labeled alternative in {@link MxParser#newType}.
+	 * Enter a parse tree produced by {@link MxParser#arrayIndex}.
 	 * @param ctx the parse tree
 	 */
-	void enterNewArray(MxParser.NewArrayContext ctx);
+	void enterArrayIndex(MxParser.ArrayIndexContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code newArray}
-	 * labeled alternative in {@link MxParser#newType}.
+	 * Exit a parse tree produced by {@link MxParser#arrayIndex}.
 	 * @param ctx the parse tree
 	 */
-	void exitNewArray(MxParser.NewArrayContext ctx);
+	void exitArrayIndex(MxParser.ArrayIndexContext ctx);
 }

@@ -1,4 +1,4 @@
-// Generated from D:/HuaweiMoveData/Users/86180/Desktop/PPCA/Compiler/Mx-Compiler/src/grammar\MxParser.g4 by ANTLR 4.12.0
+// Generated from MxParser.g4 by ANTLR 4.13.0
 package grammar;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -401,6 +401,18 @@ public class MxParserBaseListener implements MxParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterNewArray(MxParser.NewArrayContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNewArray(MxParser.NewArrayContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterNewClass(MxParser.NewClassContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -413,13 +425,13 @@ public class MxParserBaseListener implements MxParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterNewArray(MxParser.NewArrayContext ctx) { }
+	@Override public void enterArrayIndex(MxParser.ArrayIndexContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitNewArray(MxParser.NewArrayContext ctx) { }
+	@Override public void exitArrayIndex(MxParser.ArrayIndexContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

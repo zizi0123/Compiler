@@ -78,7 +78,7 @@ StringConst:'"'(ESC|.)*?'"';
 
 //skip
 WhiteSpace: [\n\f\r\t ]+ -> skip;
-CommentLine: '//'.*? '\r'?'\n' ->skip;
+CommentLine: '//'.*? ('\r'?'\n'|EOF) ->skip;
 CommentPara: '/*'.*?'*/' -> skip;
 
 

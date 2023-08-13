@@ -24,6 +24,7 @@ public class Scope implements ConstType {
         if(parentScope!=null) {
             this.isInFunction = parentScope.isInFunction;
             this.hasReturned = parentScope.hasReturned;
+            this.returnType = parentScope.returnType;
             this.isInClass = parentScope.isInClass;
             this.isInLoop = parentScope.isInLoop;
             this.classDefNode = parentScope.classDefNode;

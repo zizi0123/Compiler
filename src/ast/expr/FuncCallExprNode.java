@@ -8,11 +8,11 @@ import java.util.ArrayList;
 public class FuncCallExprNode extends ExprNode {
     public ExprNode func;
 
-    public ArrayList<ExprNode> args;
+    public ArrayList<ExprNode> args = new ArrayList<>();
+
 
     public FuncCallExprNode(Position pos) {
         super(pos);
-        args = new ArrayList<>();
     }
 
     @Override

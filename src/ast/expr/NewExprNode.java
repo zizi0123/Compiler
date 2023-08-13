@@ -10,7 +10,7 @@ public class NewExprNode extends ExprNode{
     public boolean isArray;
     public TypeName typeName;
     public int arrDim;
-    public ArrayList<ExprNode> exprs;
+    public ArrayList<ExprNode> exprs = new ArrayList<>();
 
     public NewExprNode(Position pos){
         super(pos);

@@ -10,9 +10,9 @@ public class ClassDefNode extends DefinitionNode {
 
     public String className;
 
-    public HashMap<String,SingleVarDefNode> members;
+    public HashMap<String,SingleVarDefNode> members = new HashMap<>();
 
-    public HashMap<String,FuncDefNode> functions;
+    public HashMap<String,FuncDefNode> functions = new HashMap<>();
 
     public ClassConstructorNode constructor;
 

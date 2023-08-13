@@ -5,6 +5,7 @@ import util.position.Position;
 
 public class VarExprNode extends ExprNode {
     public String varName;
+    public boolean isFunction;
 
     public VarExprNode(Position pos, String str) {
         super(pos);

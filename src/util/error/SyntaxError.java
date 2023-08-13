@@ -2,14 +2,15 @@ package util.error;
 
 import util.position.Position;
 
-public class SemanticError extends RuntimeException{
+public class SyntaxError extends RuntimeException{
+
     public String message;
 
     public Position pos;
 
-
-    public SemanticError(String msg,Position pos){
-        this.pos = pos;
+    public SyntaxError(String msg,Position pos){
         this.message = msg;
+        this.pos = pos;
     }
+
 }
