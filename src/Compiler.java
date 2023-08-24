@@ -2,18 +2,15 @@ import ast.ASTBuilder;
 import ast.ProgramNode;
 import grammar.MxLexer;
 import grammar.MxParser;
-import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTree;
-import semantic.SemanticChecker;
+import semantic.TypeChecker;
 import semantic.SymbolCollector;
-import util.MxErrorListener;
-import util.error.SemanticError;
-import util.error.SyntaxError;
-import util.scope.GlobalScope;
+import ast.util.MxErrorListener;
+import ast.util.error.SemanticError;
+import ast.util.error.SyntaxError;
+import ast.util.scope.GlobalScope;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -58,8 +55,8 @@ public class Compiler {
         System.out.println("symbol collect finish!");
 
         //semantic check
-        SemanticChecker semanticChecker = new SemanticChecker(globalScope);
-        semanticChecker.visit(programNode);
+        TypeChecker typeChecker = new TypeChecker(globalScope);
+        typeChecker.visit(programNode);
         System.out.println("semantic check finish!");
 
     }

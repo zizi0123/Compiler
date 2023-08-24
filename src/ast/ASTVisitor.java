@@ -3,9 +3,9 @@ package ast;
 import ast.expr.*;
 import ast.stmt.*;
 import ast.def.*;
-import util.type.ConstType;
+import ast.util.type.ASTTypes;
 
-public interface ASTVisitor extends ConstType {
+public interface ASTVisitor extends ASTTypes {
     public void visit(ProgramNode node);
 
     public void visit(FuncDefNode node);

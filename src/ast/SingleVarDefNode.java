@@ -1,14 +1,15 @@
 package ast;
 
 import ast.expr.ExprNode;
-import util.position.Position;
-import util.type.Type;
+import ast.util.position.Position;
+import ast.util.type.ASTType;
 
 public class SingleVarDefNode extends ASTNode{
 
-    public Type type;
+    public ASTType type;
 
     public String name;
+    public String irVarName;
 
     public ExprNode expr; //assign
 

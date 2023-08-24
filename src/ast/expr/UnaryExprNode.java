@@ -1,7 +1,7 @@
 package ast.expr;
 
 import ast.ASTVisitor;
-import util.position.Position;
+import ast.util.position.Position;
 
 public class UnaryExprNode extends ExprNode{
     public ExprNode exprNode;

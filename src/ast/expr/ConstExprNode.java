@@ -1,8 +1,8 @@
 package ast.expr;
 
 import ast.ASTVisitor;
-import util.constValue.ConstValue;
-import util.position.Position;
+import ast.util.constValue.ConstValue;
+import ast.util.position.Position;
 
 public class ConstExprNode extends ExprNode{
     public ConstValue value;

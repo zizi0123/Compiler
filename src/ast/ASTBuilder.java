@@ -8,12 +8,12 @@ import ast.expr.*;
 import ast.stmt.*;
 import grammar.MxParser;
 import grammar.MxParserBaseVisitor;
-import util.constValue.*;
-import util.error.SemanticError;
-import util.error.SyntaxError;
-import util.position.Position;
-import util.type.Type;
-import util.type.TypeName;
+import ast.util.constValue.*;
+import ast.util.error.SemanticError;
+import ast.util.error.SyntaxError;
+import ast.util.position.Position;
+import ast.util.type.ASTType;
+import ast.util.type.TypeName;
 
 public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     public ASTNode visitProgram(MxParser.ProgramContext ctx) {
@@ -45,7 +45,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     public ASTNode visitFuncDef(MxParser.FuncDefContext ctx) {
         Position pos = new Position(ctx);
         FuncDefNode funcDefNode = new FuncDefNode(pos, ctx.Identifier().getText());
-        funcDefNode.returnType = new Type(ctx.returnType());
+        funcDefNode.returnType = new ASTType(ctx.returnType());
         funcDefNode.functionParameterList = (FuncParameterListNode) visitFunctionParameterList(ctx.functionParameterList());
         funcDefNode.blockStmt = (BlockStmtNode) visitBlockStmt(ctx.blockStmt());
         return funcDefNode;
@@ -57,7 +57,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         Position pos = new Position(ctx);
         FuncParameterListNode funcParameterListNode = new FuncParameterListNode(pos);
         for (int i = 0; i < ctx.type().size(); ++i) {
-            Type type = new Type(ctx.type(i));
+            ASTType type = new ASTType(ctx.type(i));
             SingleParameter singlePara = new SingleParameter(type, ctx.Identifier(i).getText());
             funcParameterListNode.parameters.add(singlePara);
         }
@@ -125,7 +125,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     @Override
     public ASTNode visitVarDef(MxParser.VarDefContext ctx) {
         Position pos = new Position(ctx);
-        Type type = new Type(ctx.type());
+        ASTType type = new ASTType(ctx.type());
         VarDefNode varDefNode = new VarDefNode(pos, type);
         for (var defAssign : ctx.defAndAssign()) {
             SingleVarDefNode node = (SingleVarDefNode) visitDefAndAssign(defAssign);
@@ -140,9 +140,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     public ASTNode visitDefAndAssign(MxParser.DefAndAssignContext ctx) {
         Position pos = new Position(ctx);
         SingleVarDefNode singleVarDefNode = new SingleVarDefNode(pos, ctx.Identifier().getText());
-        if (ctx.expression() == null) {
-            singleVarDefNode.expr = null;
-        } else {
+        if (ctx.expression() != null) {
             singleVarDefNode.expr = (ExprNode) visit(ctx.expression());
         }
         return singleVarDefNode;
@@ -337,14 +335,12 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     }
 
 
-
-
     @Override
     public ASTNode visitFuncCallExpr(MxParser.FuncCallExprContext ctx) {
         Position pos = new Position(ctx);
         FuncCallExprNode funcCallExprNode = new FuncCallExprNode(pos);
         funcCallExprNode.func = (ExprNode) visit(ctx.expression(0));
-        if(funcCallExprNode.func instanceof VarExprNode function){
+        if (funcCallExprNode.func instanceof VarExprNode function) {
             function.isFunction = true;
         }
         for (int i = 1; i < ctx.expression().size(); ++i) {
@@ -379,21 +375,21 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         newExprNode.isArray = true;
         newExprNode.typeName = new TypeName(ctx.typeName());
         newExprNode.arrDim = ctx.arrayIndex().size();
-        boolean nullAppeared = false,sizeAppeared = false;
+        boolean nullAppeared = false, sizeAppeared = false;
         for (var arrayIndexCtx : ctx.arrayIndex()) {
             if (arrayIndexCtx.expression() == null) {
                 nullAppeared = true;
             } else {
                 sizeAppeared = true;
-                if(!nullAppeared) {
+                if (!nullAppeared) {
                     newExprNode.exprs.add((ExprNode) visit(arrayIndexCtx.expression()));
-                }else{
-                    throw new SyntaxError("invalid new array expression",pos);
+                } else {
+                    throw new SyntaxError("invalid new array expression", pos);
                 }
             }
         }
-        if(!sizeAppeared){
-            throw new SyntaxError("invalid new array expression",pos);
+        if (!sizeAppeared) {
+            throw new SyntaxError("invalid new array expression", pos);
         }
         return newExprNode;
     }

@@ -1,9 +1,8 @@
 package ast.def;
 
 import ast.*;
-import util.position.Position;
+import ast.util.position.Position;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class ClassDefNode extends DefinitionNode {

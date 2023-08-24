@@ -1,7 +1,7 @@
 package ast.stmt;
 
 import ast.ASTVisitor;
-import util.position.Position;
+import ast.util.position.Position;
 
 public class ContinueStmtNode extends StmtNode{
     public ContinueStmtNode(Position pos){

@@ -6,8 +6,8 @@ import ast.def.FuncDefNode;
 import ast.def.VarDefNode;
 import ast.expr.*;
 import ast.stmt.*;
-import util.error.SemanticError;
-import util.scope.GlobalScope;
+import ast.util.error.SemanticError;
+import ast.util.scope.GlobalScope;
 
 public class SymbolCollector implements ASTVisitor {
 
@@ -33,6 +33,7 @@ public class SymbolCollector implements ASTVisitor {
             throw new SemanticError("class" + node.funcName + "already exists!",node.pos);
         }
         this.globalScope.addFunc(node);
+        node.irFuncName = "@"+node.funcName;
     }
 
     @Override

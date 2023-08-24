@@ -1,7 +1,7 @@
 package ast.expr;
 
 import ast.ASTVisitor;
-import util.position.Position;
+import ast.util.position.Position;
 
 public class TernaryExprNode extends ExprNode{
     public ExprNode lExpr;
@@ -16,7 +16,7 @@ public class TernaryExprNode extends ExprNode{
 
     @Override
     public boolean isLeftValue() {
-        return mExpr.isLeftValue();
+        return false;
     }
 
     @Override

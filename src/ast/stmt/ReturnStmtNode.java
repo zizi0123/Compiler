@@ -2,9 +2,8 @@ package ast.stmt;
 
 import ast.ASTVisitor;
 import ast.expr.ExprNode;
-import ast.expr.TernaryExprNode;
-import util.position.Position;
-import util.type.Type;
+import ast.util.position.Position;
+import ast.util.type.ASTType;
 
 public class ReturnStmtNode extends StmtNode{
     public ExprNode expr;
@@ -13,7 +12,7 @@ public class ReturnStmtNode extends StmtNode{
         expr = null;
     }
 
-    public Type returnType;
+    public ASTType returnType;
 
     @Override
     public void accept(ASTVisitor visitor) {

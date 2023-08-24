@@ -1,6 +1,5 @@
-import ast.expr.ExprNode;
-import util.error.SemanticError;
-import util.error.SyntaxError;
+import ast.util.error.SemanticError;
+import ast.util.error.SyntaxError;
 
 import java.io.*;
 

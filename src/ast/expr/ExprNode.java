@@ -1,15 +1,17 @@
 package ast.expr;
 
+import IR.Entity;
 import ast.ASTNode;
 import ast.def.FuncDefNode;
-import util.position.Position;
-import util.type.Type;
+import ast.util.position.Position;
+import ast.util.type.ASTType;
 
 public abstract class ExprNode extends ASTNode {
 
-    public Type type;
+    public ASTType type;
 
     public FuncDefNode function;
+    public String irFuncName;
 
 
     ExprNode(Position pos){
@@ -17,5 +19,7 @@ public abstract class ExprNode extends ASTNode {
     }
 
     public abstract boolean isLeftValue();
+
+    public Entity irVal;
 
 }

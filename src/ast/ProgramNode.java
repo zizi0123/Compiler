@@ -1,7 +1,7 @@
 package ast;
 
 import ast.def.DefinitionNode;
-import util.position.Position;
+import ast.util.position.Position;
 
 import java.util.ArrayList;
 

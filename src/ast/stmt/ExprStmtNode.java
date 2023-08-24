@@ -2,7 +2,7 @@ package ast.stmt;
 
 import ast.ASTVisitor;
 import ast.expr.ExprNode;
-import util.position.Position;
+import ast.util.position.Position;
 
 public class ExprStmtNode extends StmtNode{
     public ExprNode expr;

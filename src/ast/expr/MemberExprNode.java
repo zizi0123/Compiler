@@ -1,12 +1,13 @@
 package ast.expr;
 
 import ast.ASTVisitor;
-import util.position.Position;
+import ast.util.position.Position;
 
 public class MemberExprNode extends ExprNode{
     public ExprNode obj;
-
     public String memberName;
+
+    public String irClassName;
 
     public MemberExprNode(Position pos,String memberName){
         super(pos);

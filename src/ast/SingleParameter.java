@@ -1,12 +1,14 @@
 package ast;
 
-import util.type.Type;
+import ast.util.type.ASTType;
 
 public class SingleParameter  {
-    public Type type;
+    public ASTType type;
     public String varName;
 
-    public SingleParameter(Type type, String name){
+    public String irVarName;
+
+    public SingleParameter(ASTType type, String name){
         this.type = type;
         this.varName = name;
     }

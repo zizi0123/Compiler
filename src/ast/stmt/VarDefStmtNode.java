@@ -2,7 +2,7 @@ package ast.stmt;
 
 import ast.ASTVisitor;
 import ast.def.VarDefNode;
-import util.position.Position;
+import ast.util.position.Position;
 
 public class VarDefStmtNode extends StmtNode{
 

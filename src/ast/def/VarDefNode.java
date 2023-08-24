@@ -2,16 +2,16 @@ package ast.def;
 
 import ast.ASTVisitor;
 import ast.SingleVarDefNode;
-import util.position.Position;
-import util.type.Type;
+import ast.util.position.Position;
+import ast.util.type.ASTType;
 
 import java.util.ArrayList;
 
 public class VarDefNode extends DefinitionNode {
-    public Type type;
+    public ASTType type;
     public ArrayList<SingleVarDefNode> vars = new ArrayList<>();
 
-    public VarDefNode(Position pos, Type type){
+    public VarDefNode(Position pos, ASTType type){
         super(pos);
         this.type = type;
     }

@@ -1,7 +1,7 @@
 package ast.stmt;
 
 import ast.ASTNode;
-import util.position.Position;
+import ast.util.position.Position;
 
 public abstract class StmtNode extends ASTNode {
 

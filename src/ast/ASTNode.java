@@ -1,6 +1,6 @@
 package ast;
 
-import util.position.Position;
+import ast.util.position.Position;
 
 abstract public class ASTNode{
     public Position pos;

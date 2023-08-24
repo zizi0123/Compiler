@@ -1,12 +1,13 @@
 package ast;
 
 import ast.stmt.BlockStmtNode;
-import util.position.Position;
+import ast.util.position.Position;
 
 public class ClassConstructorNode extends ASTNode{
     public String className;
-
     public BlockStmtNode blockStmt;
+
+    public String irFuncName;
 
     ClassConstructorNode(Position pos,String name){
         super(pos);
