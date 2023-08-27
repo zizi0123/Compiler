@@ -1,16 +1,21 @@
 package IR.instruction;
 
-import IR.Entity;
+import IR.Entity.Entity;
 import IR.type.IRType;
-import ast.expr.ParenExprNode;
-import ast.expr.TernaryExprNode;
 
-public class ReturnIns extends Instruction{
-    IRType type;
-    Entity value;
+public class ReturnIns extends Instruction {
+    public IRType type;
+    public Entity value;
 
-    public ReturnIns(Entity val){
-        this.type = val.type;
-        this.value = val;
+    public ReturnIns(Entity val) {
+        if (val != null) {
+            this.type = val.type;
+            this.value = val;
+        }
+    }
+
+    @Override
+    public void Print() {
+        System.out.println("ret " + type.toString() + " " + value.toString());
     }
 }

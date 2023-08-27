@@ -1,15 +1,15 @@
 package IR;
 
+import IR.Entity.Entity;
 import IR.instruction.*;
 import IR.instruction.arithmetic.*;
 import IR.instruction.icmp.*;
-import IR.literal.*;
+import IR.Entity.literal.*;
 import IR.type.IRClassType;
-import IR.type.IRPtrType;
 import IR.type.IRType;
-import IR.variable.GlobalVar;
-import IR.variable.LocalVar;
-import IR.variable.RegVar;
+import IR.Entity.variable.GlobalVar;
+import IR.Entity.variable.LocalVar;
+import IR.Entity.variable.RegVar;
 import ast.*;
 import ast.def.ClassDefNode;
 import ast.def.FuncDefNode;
@@ -17,37 +17,27 @@ import ast.def.VarDefNode;
 import ast.expr.*;
 import ast.stmt.*;
 import ast.util.constValue.*;
-import ast.util.error.SemanticError;
-import ast.util.scope.GlobalScope;
-import ast.util.scope.Scope;
-import semantic.SymbolCollector;
 
 import java.util.ArrayList;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentLinkedDeque;
 
-import static IR.literal.Literal.defaultVal;
+import static IR.Entity.literal.Literal.defaultVal;
 import static IR.type.IRType.toIRType;
 import static IR.type.IRTypes.*;
 import static ast.util.scope.GlobalScope.*;
 
 public class IRBuilder implements ASTVisitor {
-    GlobalScope globalScope;
-    Scope currentScope;
+
 
     IRClassType currentClass;
     Program program;
     BasicBlock currentBlock, continueToBlock, breakToBlock;
     IR.IRFunction currentFunction;
 
-    public IRBuilder(GlobalScope globalScope) { //直接传入经过semantic check的globalScope
-        this.program = new Program();
-        this.globalScope = globalScope;
-        this.currentScope = new Scope(null);
-        this.currentScope.vars = globalScope.vars;
+    public IRBuilder() {
+        program = new Program();
     }
 
-    void IRSymbolCollect(ProgramNode node) {  //todo check是否需要提前处理
+    void IRSymbolCollect(ProgramNode node) {
         for (var def : node.defNodes) {
             if (def instanceof ClassDefNode classDefNode) {
                 IRClassType classType = new IRClassType("%class." + classDefNode.className, classDefNode.members.size() << 2);
@@ -55,11 +45,23 @@ public class IRBuilder implements ASTVisitor {
                     classType.addType(member);
                 }
                 program.classes.put(classType.typeName, classType);
+                if (classDefNode.constructor != null) {
+                    IRFunction func = new IRFunction("@" + classDefNode.className + "." + classDefNode.className, true, irVoidType);
+                    program.functions.put(func.irFuncName, func);
+                    classType.constructor = currentFunction;
+                }
+                for (var function : classDefNode.functions.values()) {
+                    IRFunction classMethod = new IRFunction(function.irFuncName, true, toIRType(function.returnType));
+                    program.functions.put(classMethod.irFuncName, classMethod);
+                }
+            } else if (def instanceof FuncDefNode funcDefNode) {
+                IRFunction func = new IRFunction(funcDefNode.irFuncName, false, toIRType(funcDefNode.returnType));
+                program.functions.put(func.irFuncName, func);
             }
         }
     }
 
-    Entity getValue(Entity var, IRType type) {
+    Entity getValue(Entity var) {
         if (var instanceof LocalVar localVar) {
             LoadIns load = new LoadIns(localVar);
             currentBlock.addIns(load);
@@ -75,8 +77,18 @@ public class IRBuilder implements ASTVisitor {
         }
     }
 
+    Entity getValue(RegVar varPtr, IRType type) {
+        assert varPtr.type.equals(irPtrType) : "a exprNode's irPtr is not a irPtrType regVar";
+        RegVar value = new RegVar(type, (varPtr.toString() + "_value."+varPtr.getLoadNum()));
+        currentBlock.addIns(new LoadIns(varPtr.toString(), type, value.name));
+        return value;
+    }
+
     Entity getValue(ExprNode node) {
-        return getValue(node.irVal, toIRType(node.type));
+        if (node.irVal != null) {
+            return getValue(node.irVal);
+        }
+        return getValue(node.irPtr, toIRType(node.type));
     }
 
     @Override
@@ -96,11 +108,12 @@ public class IRBuilder implements ASTVisitor {
             IRFunction mainFunc = program.functions.get("@main");
             mainFunc.entryBlock.instructions.add(0, new CallIns(irVoidType, "@global_init", null));
         }
+        program.Print();
     }
 
     @Override
     public void visit(FuncDefNode node) {
-        currentFunction = new IRFunction(node.irFuncName, false, toIRType(node.returnType));
+        currentFunction = program.functions.get(node.irFuncName);
         currentBlock = currentFunction.entryBlock;
         if (node.funcName.equals("main")) {
             currentBlock.exitInstruction = new ReturnIns(new IntLiteral(0));
@@ -109,36 +122,40 @@ public class IRBuilder implements ASTVisitor {
             visit(node.functionParameterList);
         }
         visit(node.blockStmt);
-        program.functions.put(currentFunction.irFuncName, currentFunction);
     }
 
     @Override
     public void visit(ClassDefNode node) {
-        currentClass = program.classes.get(node.className);
+        currentClass = program.classes.get("%class." + node.className);
         if (node.constructor != null) visit(node.constructor);
         for (var function : node.functions.values()) {
-            visitClassMethod(node.className, function);
+            visitClassMethod(function);
         }
     }
 
     @Override
     public void visit(ClassConstructorNode node) {
-        currentFunction = new IRFunction("@" + node.className + "." + node.className, true, irVoidType);
+        currentFunction = program.functions.get("@" + node.className + "." + node.className);
         currentBlock = currentFunction.entryBlock;
-        currentClass.constructor = currentFunction;
         currentFunction.addParaThis();
-        program.functions.put(currentFunction.irFuncName, currentFunction);
+        LocalVar thisPtr = new LocalVar("%this", irPtrType);
+        currentFunction.addLocalVar(thisPtr);
+        currentBlock.addIns(new AllocaIns(thisPtr));
+        currentBlock.addIns(new StoreIns(currentFunction.parameters.get(0), thisPtr.name)); //添加局部变量this指针
         visit(node.blockStmt);
     }
 
-    public void visitClassMethod(String className, FuncDefNode funcDefNode) {
-        currentFunction = new IRFunction(funcDefNode.irFuncName, true, toIRType(funcDefNode.returnType));
+    public void visitClassMethod(FuncDefNode funcDefNode) {
+        currentFunction = program.functions.get(funcDefNode.irFuncName);
         currentBlock = currentFunction.entryBlock;
         currentFunction.addParaThis();
+        LocalVar thisPtr = new LocalVar("%this", irPtrType);
+        currentFunction.addLocalVar(thisPtr);
+        currentBlock.addIns(new AllocaIns(thisPtr));
+        currentBlock.addIns(new StoreIns(currentFunction.parameters.get(0), thisPtr.name)); //添加局部变量this指针
         if (!funcDefNode.functionParameterList.isEmpty()) {
             funcDefNode.functionParameterList.accept(this);
         }
-        program.functions.put(currentFunction.irFuncName, currentFunction);
         visit(funcDefNode.blockStmt);
     }
 
@@ -155,7 +172,7 @@ public class IRBuilder implements ASTVisitor {
             GlobalVar var = new GlobalVar(node.irVarName, toIRType(node.type));
             program.globalVars.put(var.name, var);
             if (node.expr != null) {
-                if (node.expr instanceof ConstExprNode expr) {
+                if (node.expr instanceof ConstExprNode) {
                     node.expr.accept(this);
                     var.initVal = getValue(node.expr);
                 } else {
@@ -185,10 +202,6 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(FuncParameterListNode node) {
-        LocalVar thisPtr = new LocalVar("%this", irPtrType);
-        currentFunction.addLocalVar(thisPtr);
-        currentBlock.addIns(new AllocaIns(thisPtr));
-        currentBlock.addIns(new StoreIns(currentFunction.parameters.get(0), thisPtr.name)); //添加局部变量this指针
         for (var para : node.parameters) {
             RegVar irPara = currentFunction.addPara(para);  //加入函数的参数列表
             LocalVar inPara = new LocalVar(para.irVarName, toIRType(para.type));  //创建局部变量
@@ -208,25 +221,26 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(IfStmtNode node) {
-        ++currentFunction.ifStmtNum;
+        int ifStmtNum = ++currentFunction.ifStmtNum;
         node.condition.accept(this);
+        Entity condVal = getValue(node.condition);
         BasicBlock tmpBlock = currentBlock;
-        BasicBlock nextBlock = new BasicBlock("end_if." + currentFunction.ifStmtNum);
+        BasicBlock nextBlock = new BasicBlock("if_end." + ifStmtNum);
         nextBlock.exitInstruction = currentBlock.exitInstruction;
-        BasicBlock trueBlock = new BasicBlock("true_if." + currentFunction.ifStmtNum);
+        BasicBlock trueBlock = new BasicBlock("if_true." + ifStmtNum);
         trueBlock.exitInstruction = new BranchIns(nextBlock);
         currentFunction.addBlock(trueBlock);
         currentBlock = trueBlock;
         node.trueStmts.accept(this);
         if (node.falseStmts != null) {
-            BasicBlock falseBlock = new BasicBlock("false_if." + currentFunction.ifStmtNum);
+            BasicBlock falseBlock = new BasicBlock("if_false." + ifStmtNum);
             falseBlock.exitInstruction = new BranchIns(nextBlock);
             currentFunction.addBlock(falseBlock);
             currentBlock = falseBlock;
             node.falseStmts.accept(this);
-            tmpBlock.exitInstruction = new BranchIns(getValue(node.condition), trueBlock, falseBlock);
+            tmpBlock.exitInstruction = new BranchIns(condVal, trueBlock, falseBlock);
         } else {
-            tmpBlock.exitInstruction = new BranchIns(getValue(node.condition), trueBlock, nextBlock);
+            tmpBlock.exitInstruction = new BranchIns(condVal, trueBlock, nextBlock);
         }
         currentFunction.addBlock(nextBlock);
         currentBlock = nextBlock;
@@ -234,12 +248,12 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(WhileStmtNode node) {
-        ++currentFunction.whileStmtNum;
+        int whileStmtNum = ++currentFunction.whileStmtNum;
         node.condition.accept(this);
         BasicBlock tmpBlock = currentBlock;
-        BasicBlock nextBlock = new BasicBlock("end_while." + currentFunction.whileStmtNum);
-        BasicBlock condBlock = new BasicBlock("condition_while." + currentFunction.whileStmtNum);
-        BasicBlock bodyBlock = new BasicBlock("body_while." + currentFunction.whileStmtNum);
+        BasicBlock nextBlock = new BasicBlock("while_end." + whileStmtNum);
+        BasicBlock condBlock = new BasicBlock("while_condition." + whileStmtNum);
+        BasicBlock bodyBlock = new BasicBlock("while_body." + whileStmtNum);
         BasicBlock lastContinue = continueToBlock;
         BasicBlock lastBreak = breakToBlock;
         breakToBlock = nextBlock;
@@ -248,12 +262,14 @@ public class IRBuilder implements ASTVisitor {
         tmpBlock.exitInstruction = new BranchIns(condBlock);
         currentBlock = condBlock;
         currentFunction.addBlock(condBlock);
+        BranchIns branchIns = new BranchIns(null, bodyBlock, nextBlock);
+        condBlock.exitInstruction = branchIns;
         node.condition.accept(this);
-        condBlock.exitInstruction = new BranchIns(getValue(node.condition), bodyBlock, nextBlock);
+        branchIns.condition = getValue(node.condition);
         currentBlock = bodyBlock;
         currentFunction.addBlock(bodyBlock);
-        node.stmts.accept(this);
         bodyBlock.exitInstruction = new BranchIns(condBlock);
+        node.stmts.accept(this);
         currentBlock = nextBlock;
         currentFunction.addBlock(nextBlock);
         continueToBlock = lastContinue;
@@ -262,17 +278,17 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(ForStmtNode node) {
-        ++currentFunction.forStmtNum;
+        int forStmtNum = ++currentFunction.forStmtNum;
         if (node.initVarDef != null) {
             node.initVarDef.accept(this);
-        } else {
+        } else if (node.initExpr != null) {
             node.initExpr.accept(this);
         }
         BasicBlock tmpBlock = currentBlock;
-        BasicBlock nextBlock = new BasicBlock("end_for." + currentFunction.forStmtNum);
-        BasicBlock condBlock = new BasicBlock("condition_for." + currentFunction.forStmtNum);
-        BasicBlock bodyBlock = new BasicBlock("body_for." + currentFunction.forStmtNum);
-        BasicBlock stepBlock = new BasicBlock("step_for" + currentFunction.forStmtNum);
+        BasicBlock nextBlock = new BasicBlock("for_end." + forStmtNum);
+        BasicBlock condBlock = new BasicBlock("for_condition." + forStmtNum);
+        BasicBlock bodyBlock = new BasicBlock("for_body." + forStmtNum);
+        BasicBlock stepBlock = new BasicBlock("for_step." + forStmtNum);
         BasicBlock lastContinue = continueToBlock;
         BasicBlock lastBreak = breakToBlock;
         continueToBlock = stepBlock;
@@ -282,21 +298,23 @@ public class IRBuilder implements ASTVisitor {
         currentBlock = condBlock;
         currentFunction.addBlock(condBlock);
         if (node.condition != null) {
+            BranchIns branch = new BranchIns(null, bodyBlock, nextBlock);
+            condBlock.exitInstruction = branch;
             node.condition.accept(this);
-            condBlock.exitInstruction = new BranchIns(getValue(node.condition), bodyBlock, nextBlock);
+            branch.condition = getValue(node.condition);
         } else {
             condBlock.exitInstruction = new BranchIns(bodyBlock);
         }
         currentBlock = bodyBlock;
         currentFunction.addBlock(bodyBlock);
-        node.stmts.accept(this);
         bodyBlock.exitInstruction = new BranchIns(stepBlock);
+        node.stmts.accept(this);
         currentBlock = stepBlock;
         currentFunction.addBlock(stepBlock);
+        stepBlock.exitInstruction = new BranchIns(condBlock);
         if (node.step != null) {
             node.step.accept(this);
         }
-        stepBlock.exitInstruction = new BranchIns(condBlock);
         currentBlock = nextBlock;
         currentFunction.addBlock(nextBlock);
         continueToBlock = lastContinue;
@@ -315,10 +333,13 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(ReturnStmtNode node) {
-        currentFunction.retNum++;
         if (node.expr != null) {
+            ReturnIns returnIns = new ReturnIns(null);
+            currentBlock.exitInstruction = returnIns;
             node.expr.accept(this);
-            currentBlock.exitInstruction = new ReturnIns(getValue(node.expr));
+            Entity returnVal = getValue(node.expr);
+            returnIns.type = returnVal.type;
+            returnIns.value = returnVal;
         } else {
             currentBlock.exitInstruction = new ReturnIns(new voidLiteral());
         }
@@ -340,6 +361,7 @@ public class IRBuilder implements ASTVisitor {
     public void visit(ParenExprNode node) {
         node.exprNode.accept(this);
         node.irVal = node.exprNode.irVal;
+        node.irPtr = node.exprNode.irPtr;
     }
 
     @Override
@@ -369,142 +391,99 @@ public class IRBuilder implements ASTVisitor {
                     node.irVal = currentFunction.localVars.get(node.irVarName);
                 }
             } else { //是this的一个数据成员,建立一个局部变量，存入指向该元素的指针
-                node.irVal = currentFunction.localVars.get("%this." + node.varName);
-                if (node.irVal == null) { //此成员第一次出现，将它加入localVar;
-                    LocalVar var = new LocalVar("%this." + node.varName, toIRType(node.type));
-                    LoadIns loadIns = new LoadIns(currentFunction.localVars.get("%this"));
-                    int idx2 = currentClass.getMemberNum(node.varName);
-                    GetElementPtrIns getIns = new GetElementPtrIns(var.type, loadIns.value, 0, idx2, var.name); //把指向这个成员的指针存入var
-                    currentBlock.addIns(loadIns);
-                    currentBlock.addIns(getIns);
-                    currentFunction.addLocalVar(var);
-                    node.irVal = var;
-                }
+                RegVar memberPtr = new RegVar(irPtrType, "%this." + node.varName + "." + currentClass.getGEPtime(node.varName));
+                LoadIns loadIns = new LoadIns(currentFunction.localVars.get("%this"));
+                int idx2 = currentClass.getMemberNum(node.varName);
+                GetElementPtrIns getIns = new GetElementPtrIns(currentClass, loadIns.value, new IntLiteral(0), new IntLiteral(idx2), memberPtr.name); //把指向这个成员的指针存入var
+                currentBlock.addIns(loadIns);
+                currentBlock.addIns(getIns);
+                node.irPtr = memberPtr;
+                node.irVal = null;
             }
         }
     }
 
     @Override
     public void visit(BinaryExprNode node) {
-        ++currentFunction.arithNum;
+        int arithNum = ++currentFunction.arithNum;
         node.lhs.accept(this);
-        if (node.op.equals("&&") || !node.op.equals("||")) { //circuit
-            RegVar result = new RegVar(irPtrType, "shortCut_result." + currentFunction.shortCutNum);
-            currentBlock.addIns(new AllocaIns(result, irBoolType));
+        if (node.op.equals("&&") || node.op.equals("||")) {     //shortcut
             ++currentFunction.shortCutNum;
             BasicBlock nextBlock = new BasicBlock("shortCut_next." + currentFunction.shortCutNum);
             BasicBlock rhsBlock = new BasicBlock("shortCut_rhs." + currentFunction.shortCutNum);
             BasicBlock trueBlock = new BasicBlock("shortCut_true." + currentFunction.shortCutNum);
             BasicBlock falseBlock = new BasicBlock("shortCut_false." + currentFunction.shortCutNum);
-            BasicBlock tmpBlock = currentBlock;
-            nextBlock.exitInstruction = tmpBlock.exitInstruction;
+            nextBlock.exitInstruction = currentBlock.exitInstruction;
             if (node.op.equals("&&")) {
-                tmpBlock.exitInstruction = new BranchIns(getValue(node.lhs), rhsBlock, falseBlock);
+                currentBlock.exitInstruction = new BranchIns(getValue(node.lhs), rhsBlock, falseBlock);
             } else {
-                tmpBlock.exitInstruction = new BranchIns(getValue(node.lhs), trueBlock, rhsBlock);
+                currentBlock.exitInstruction = new BranchIns(getValue(node.lhs), trueBlock, rhsBlock);
             }
             currentFunction.addBlock(rhsBlock);
             currentBlock = rhsBlock;
+            BranchIns branchIns = new BranchIns(null, trueBlock, falseBlock);
+            currentBlock.exitInstruction = branchIns;
             node.rhs.accept(this);
-            rhsBlock.exitInstruction = new BranchIns(getValue(node.rhs), trueBlock, falseBlock);
+            branchIns.condition = getValue(node.rhs);
             currentFunction.addBlock(trueBlock);
             currentBlock = trueBlock;
-            currentBlock.addIns(new StoreIns(new BoolLiteral(true), result.name));
             currentBlock.exitInstruction = new BranchIns(nextBlock);
             currentFunction.addBlock(falseBlock);
             currentBlock = falseBlock;
-            currentBlock.addIns(new StoreIns(new BoolLiteral(false), result.name));
             currentBlock.exitInstruction = new BranchIns(nextBlock);
             currentFunction.addBlock(nextBlock);
             currentBlock = nextBlock;
+            RegVar result = new RegVar(irBoolType, "%shortCut_result." + currentFunction.shortCutNum);
+            PhiIns phiIns = new PhiIns(result);
+            phiIns.addPair(new BoolLiteral(true), trueBlock);
+            phiIns.addPair(new BoolLiteral(false), falseBlock);
             node.irVal = result;
+            currentBlock.addIns(phiIns);
         } else {
             node.rhs.accept(this);
             if (node.lhs.type.equals(stringType) || node.rhs.type.equals(stringType)) {
                 String funcName;
                 int callNum;
-                switch (node.op) {
-                    case "+":
-                        funcName = "@string_add";
-                        break;
-                    case "==":
-                        funcName = "@string_eq";
-                        break;
-                    case "!=":
-                        funcName = "@string_ne";
-                        break;
-                    case ">":
-                        funcName = "@string_gt";
-                        break;
-                    case "<":
-                        funcName = "@string_lt";
-                        break;
-                    case "<=":
-                        funcName = "@string_le";
-                        break;
-                    default:
-                        funcName = "@string_ge";
-                        break;
-                }
+                funcName = switch (node.op) {
+                    case "+" -> "@string.add";
+                    case "==" -> "@string.eq";
+                    case "!=" -> "@string.ne";
+                    case ">" -> "@string.gt";
+                    case "<" -> "@string.lt";
+                    case "<=" -> "@string.le";
+                    default -> "@string.ge";
+                };
                 callNum = program.getBuildInCallTime(funcName);
-                node.irVal = new RegVar(irBoolType, funcName + "_result." + callNum);
+                if (node.op.equals("+")) {
+                    node.irVal = new RegVar(irPtrType, "%" + funcName.substring(1) + "_result." + callNum);
+                } else {
+                    node.irVal = new RegVar(irBoolType, "%" + funcName.substring(1) + "_result." + callNum);
+                }
                 currentBlock.addIns(new CallIns(funcName, node.irVal, getValue(node.lhs), getValue(node.rhs)));
             } else {
                 if (node.op.equals("*") || node.op.equals("/") || node.op.equals("%") || node.op.equals("+") || node.op.equals("-") || node.op.equals("<<") || node.op.equals(">>") || node.op.equals("&") || node.op.equals("^") || node.op.equals("|")) {
-                    node.irVal = new RegVar(irIntType, "arith_result." + currentFunction.arithNum);
+                    node.irVal = new RegVar(irIntType, "%arith_result." + arithNum);
                     switch (node.op) {
-                        case "+":
-                            currentBlock.addIns(new Add(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "-":
-                            currentBlock.addIns(new Sub(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "*":
-                            currentBlock.addIns(new Mul(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "/":
-                            currentBlock.addIns(new Sdiv(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "%":
-                            currentBlock.addIns(new Srem(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "<<":
-                            currentBlock.addIns(new Shl(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case ">>":
-                            currentBlock.addIns(new Ashr(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "&":
-                            currentBlock.addIns(new And(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "|":
-                            currentBlock.addIns(new Or(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "^":
-                            currentBlock.addIns(new Xor(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
+                        case "+" -> currentBlock.addIns(new Add(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "-" -> currentBlock.addIns(new Sub(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "*" -> currentBlock.addIns(new Mul(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "/" -> currentBlock.addIns(new Sdiv(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "%" -> currentBlock.addIns(new Srem(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "<<" -> currentBlock.addIns(new Shl(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case ">>" -> currentBlock.addIns(new Ashr(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "&" -> currentBlock.addIns(new And(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "|" -> currentBlock.addIns(new Or(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "^" -> currentBlock.addIns(new Xor(getValue(node.lhs), getValue(node.rhs), node.irVal));
                     }
                 } else {
-                    node.irVal = new RegVar(irBoolType, "arith_result." + currentFunction.arithNum);
+                    node.irVal = new RegVar(irBoolType, "%arith_result." + arithNum);
                     switch (node.op) {
-                        case "==":
-                            currentBlock.addIns(new Eq(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "!=":
-                            currentBlock.addIns(new Ne(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case ">":
-                            currentBlock.addIns(new Sgt(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "<":
-                            currentBlock.addIns(new Slt(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case ">=":
-                            currentBlock.addIns(new Sge(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
-                        case "<=":
-                            currentBlock.addIns(new Sle(getValue(node.lhs), getValue(node.rhs), node.irVal));
-                            break;
+                        case "==" -> currentBlock.addIns(new Eq(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "!=" -> currentBlock.addIns(new Ne(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case ">" -> currentBlock.addIns(new Sgt(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "<" -> currentBlock.addIns(new Slt(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case ">=" -> currentBlock.addIns(new Sge(getValue(node.lhs), getValue(node.rhs), node.irVal));
+                        case "<=" -> currentBlock.addIns(new Sle(getValue(node.lhs), getValue(node.rhs), node.irVal));
                     }
                 }
             }
@@ -513,57 +492,59 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(UnaryExprNode node) {
-        ++currentFunction.arithNum;
+        int arithNum = ++currentFunction.arithNum;
         node.exprNode.accept(this);
-        RegVar result = new RegVar(irIntType, "tmp_result." + currentFunction.arithNum);
+        RegVar result;
+        if (node.op.equals("!")) {
+            result = new RegVar(irBoolType, "%unary_result." + arithNum);
+        } else {
+            result = new RegVar(irIntType, "%unary_result." + arithNum);
+        }
         switch (node.op) {
-            case "++":
+            case "++" -> {
                 node.irVal = getValue(node.exprNode);
                 currentBlock.addIns(new Add(node.irVal, new IntLiteral(1), result));
-                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal.getName()));
-                break;
-            case "--":
+                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal != null ? node.exprNode.irVal.toString() : node.exprNode.irPtr.toString()));
+            }
+            case "--" -> {
                 node.irVal = getValue(node.exprNode);
                 currentBlock.addIns(new Sub(node.irVal, new IntLiteral(1), result));
-                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal.getName()));
-                break;
-            case "-":
+                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal != null ? node.exprNode.irVal.toString() : node.exprNode.irPtr.toString()));
+            }
+            case "-" -> {
                 currentBlock.addIns(new Sub(new IntLiteral(0), getValue(node.exprNode), result));
-                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal.getName()));
                 node.irVal = result;
-                break;
-            case "+":
-                node.irVal = getValue(node.exprNode);
-                break;
-            case "~":
+            }
+            case "+" -> node.irVal = getValue(node.exprNode);
+            case "~" -> {
                 currentBlock.addIns(new Xor(new IntLiteral(-1), getValue(node.exprNode), result));
-                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal.getName()));
                 node.irVal = result;
-                break;
-            case "!":
+            }
+            case "!" -> {
                 currentBlock.addIns(new Xor(new BoolLiteral(true), getValue(node.exprNode), result));
-                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal.getName()));
                 node.irVal = result;
-                break;
+            }
         }
     }
 
     @Override
     public void visit(PreOpExprNode node) {
-        ++currentFunction.arithNum;
+        int arithNum = ++currentFunction.arithNum;
         node.expr.accept(this);
-        RegVar result = new RegVar(irIntType, "tmp_result." + currentFunction.arithNum);
+        RegVar result = new RegVar(irIntType, "%preop_result." + arithNum);
         switch (node.op) {
-            case "++":
+            case "++" -> {
                 currentBlock.addIns(new Add(getValue(node.expr), new IntLiteral(1), result));
-                currentBlock.addIns(new StoreIns(result, node.expr.irVal.getName()));
+                currentBlock.addIns(new StoreIns(result, node.expr.irVal != null ? node.expr.irVal.toString() : node.expr.irPtr.toString()));
                 node.irVal = node.expr.irVal;
-                break;
-            case "--":
+                node.irPtr = node.expr.irPtr;
+            }
+            case "--" -> {
                 currentBlock.addIns(new Sub(getValue(node.expr), new IntLiteral(1), result));
-                currentBlock.addIns(new StoreIns(result, node.expr.irVal.getName()));
+                currentBlock.addIns(new StoreIns(result, node.expr.irVal != null ? node.expr.irVal.toString() : node.expr.irPtr.toString()));
                 node.irVal = node.expr.irVal;
-                break;
+                node.irPtr = node.expr.irPtr;
+            }
         }
     }
 
@@ -571,19 +552,21 @@ public class IRBuilder implements ASTVisitor {
     public void visit(AssignExprNode node) {
         node.rhs.accept(this);
         node.lhs.accept(this);
-        currentBlock.addIns(new StoreIns(getValue(node.rhs), node.lhs.irVal.getName()));
-        node.irVal = node.rhs.irVal;
+        currentBlock.addIns(new StoreIns(getValue(node.rhs), (node.lhs.irVal != null ? node.lhs.irVal.toString() : node.lhs.irPtr.toString())));
+        node.irVal = node.lhs.irVal;
+        node.irPtr = node.lhs.irPtr;
     }
 
     @Override
     public void visit(FuncCallExprNode node) {
         node.func.accept(this);
+        String irFuncName = node.func.irFuncName;
         CallIns callIns;
-        int buildInCallTime = program.getBuildInCallTime(node.irFuncName);
+        int buildInCallTime = program.getBuildInCallTime(irFuncName);
         if (buildInCallTime != -1) {  //build-in function
-            node.irVal = new RegVar(toIRType(node.function.returnType), node.irFuncName + "_result." + buildInCallTime);
-            callIns = new CallIns(node.irFuncName, node.irVal);
-            if (node.func.function.equals(size)) { //todo 此处的array是否需要什么特殊操作？？？
+            node.irVal = new RegVar(toIRType(node.func.function.returnType), "%" + irFuncName.substring(1) + "_result." + buildInCallTime);
+            callIns = new CallIns(irFuncName, node.irVal);
+            if (node.func.function.equals(size)) {
                 Entity var = getValue(((MemberExprNode) node.func).obj);
                 callIns.args.add(var);
             } else if (node.func.function.equals(length) || node.func.function.equals(substring) || node.func.function.equals(parseInt) || node.func.function.equals(ord)) {
@@ -595,15 +578,15 @@ public class IRBuilder implements ASTVisitor {
                 callIns.args.add(getValue(arg));
             }
         } else {
-            IRFunction function = program.functions.get(node.irFuncName);
+            IRFunction function = program.functions.get(irFuncName);
             function.callNum++;
-            node.irVal = new RegVar(toIRType(node.function.returnType), node.irFuncName + "_result." + function.callNum);
-            callIns = new CallIns(node.irFuncName, node.irVal);
+            node.irVal = new RegVar(function.returnType, "%" + irFuncName.substring(1) + "_result." + function.callNum);
+            callIns = new CallIns(irFuncName, node.irVal);
             if (function.isClassMethod) {
                 if (node.func instanceof MemberExprNode memberExprNode) {
                     callIns.args.add(getValue(memberExprNode.obj));
                 } else {
-                    Entity this_val = getValue(currentFunction.localVars.get("%this"), irPtrType);
+                    Entity this_val = getValue(currentFunction.localVars.get("%this"));
                     callIns.args.add(this_val);
                 }
             }
@@ -613,25 +596,19 @@ public class IRBuilder implements ASTVisitor {
             }
         }
         currentBlock.addIns(callIns);
-        //todo 在打印函数的时候，如果是void，那么不需要打印result
     }
 
     @Override
     public void visit(ArrayExprNode node) {
-        ++currentFunction.arrayNum;
+        int arrayNum = ++currentFunction.arrayNum;
         node.array.accept(this);
         node.index.accept(this);
         Entity startPtr = getValue(node.array);
-        RegVar value = new RegVar(irPtrType, "%array_ptr." + currentFunction.arrayNum);
-        currentBlock.addIns(new GetElementPtrIns(toIRType(node.type), startPtr, getValue(node.index), new IntLiteral(0), value.name));
-        if (node.type.isArray) { //还需要再次load,才能得到指向数组开头位置的指针
-            ++currentFunction.arrayNum;
-            LoadIns load = new LoadIns(value, irPtrType, "%array_ptr." + currentFunction.arrayNum);
-            currentBlock.addIns(load);
-            node.irVal = load.value;
-        } else {
-            node.irVal = value;
-        }
+        RegVar ptr = new RegVar(irPtrType, "%array_ptr." + arrayNum);
+        GetElementPtrIns get = new GetElementPtrIns(toIRType(node.type), startPtr, getValue(node.index), null, ptr.name);
+        currentBlock.addIns(get);
+        node.irPtr = ptr;
+        node.irVal = null;
     }
 
     @Override
@@ -641,64 +618,130 @@ public class IRBuilder implements ASTVisitor {
             Entity ptr = getValue(node.obj);
             IRClassType classType = program.classes.get(node.irClassName);
             int num = classType.getMemberNum(node.memberName);
-            String name = node.irClassName + "." + node.memberName + classType.getGEPtime(node.memberName);
+            String name = "%" + node.irClassName.substring(7) + "." + node.memberName + "_ptr." + classType.getGEPtime(node.memberName);
+            RegVar memberPtr = new RegVar(irPtrType, name);
             GetElementPtrIns getIns = new GetElementPtrIns(classType, ptr, new IntLiteral(0), new IntLiteral(num), name);
-            node.irVal = getIns.value;
+            currentBlock.addIns(getIns);
+            node.irPtr = memberPtr;
+            node.irVal = null;
         }
+    }
+
+
+    RegVar getNewArray(int at, int dim, ArrayList<Entity> lengthVal, IRType baseType) {
+        CallIns callIns;
+        RegVar array = new RegVar(irPtrType, "%new_array_" + at + "." + currentFunction.newNum);
+        if (at == dim - 1) {
+            if (baseType.equals(irIntType)) {
+                callIns = new CallIns("@_newIntArray", array, lengthVal.get(at));
+            } else if (baseType.equals(irBoolType)) {
+                callIns = new CallIns("@_newBoolArray", array, lengthVal.get(at));
+            } else {
+                callIns = new CallIns("@_newPtrArray", array, lengthVal.get(at));
+            }
+        } else {
+            callIns = new CallIns("@_newPtrArray", array, lengthVal.get(at));
+        }
+        currentBlock.addIns(callIns);
+        return array;
+    }
+
+    Entity newFunction(int at, int dim, ArrayList<Entity> lengthVal, IRType baseType) {
+        RegVar startValue = getNewArray(at, dim, lengthVal, baseType);
+        if (at != lengthVal.size() - 1) {
+            LocalVar idx = new LocalVar("%new_idx" + dim + "." + currentFunction.newNum, irIntType);
+            currentBlock.addIns(new AllocaIns(idx));
+            currentBlock.addIns(new StoreIns(new IntLiteral(0), idx.name));
+            BasicBlock nextBlock = new BasicBlock("new_for_end_" + dim + "." + currentFunction.newNum);
+            BasicBlock condBlock = new BasicBlock("new_for_condition_" + dim + "." + currentFunction.newNum);
+            BasicBlock bodyBlock = new BasicBlock("new_for_body_" + dim + "." + currentFunction.newNum);
+            BasicBlock stepBlock = new BasicBlock("new_forstep__" + dim + "." + currentFunction.newNum);
+            nextBlock.exitInstruction = currentBlock.exitInstruction;
+            currentBlock.exitInstruction = new BranchIns(condBlock);
+
+            currentBlock = condBlock;
+            currentFunction.addBlock(condBlock);
+            RegVar condition = new RegVar(irBoolType, "%new_condition_" + dim + "." + currentFunction.newNum);
+            RegVar idxVal = new RegVar(irIntType, "%new_idx_val" + dim + "." + currentFunction.newNum);
+            condBlock.addIns(new LoadIns(idx.name, irIntType, idxVal.name));
+            currentBlock.addIns(new Slt(idxVal, lengthVal.get(at), condition));
+            condBlock.exitInstruction = new BranchIns(condition, bodyBlock, nextBlock);
+
+            currentBlock = bodyBlock;
+            currentFunction.addBlock(bodyBlock);
+            Entity nextDim = newFunction(at + 1, dim, lengthVal, baseType);
+            GetElementPtrIns getElementPtrIns = new GetElementPtrIns(irPtrType, startValue, idxVal, null, "%new_array_" + (at - 1) + "." + currentFunction.newNum);
+            currentBlock.addIns(getElementPtrIns);
+            currentBlock.addIns(new StoreIns(nextDim, getElementPtrIns.valuePtrName));
+            bodyBlock.exitInstruction = new BranchIns(stepBlock);
+
+            currentBlock = stepBlock;
+            currentFunction.addBlock(stepBlock);
+            RegVar newIdxVal = new RegVar(irIntType, "%new_idx_val_add" + dim + "." + currentFunction.newNum);
+            currentBlock.addIns(new Add(idxVal, new IntLiteral(1), newIdxVal));
+            currentBlock.addIns(new StoreIns(newIdxVal, idx.name));
+            stepBlock.exitInstruction = new BranchIns(condBlock);
+
+            currentBlock = nextBlock;
+            currentFunction.addBlock(nextBlock);
+//            for (int idx = 0; idx < lengthVal.get(at); ++idx) {
+//                Entity nextDim = newFunction(at + 1, dim, lengthVal, baseType);
+//                GetElementPtrIns getElementPtrIns = new GetElementPtrIns(irPtrType, startValue, new IntLiteral(i), new IntLiteral(0), "%new_array_" + (at - 1) + "_" + i + "." + currentFunction.newNum);
+//                currentBlock.addIns(getElementPtrIns);
+//                currentBlock.addIns(new StoreIns(nextDim, getElementPtrIns.value.name));
+//            }
+        }
+        return startValue;
     }
 
     @Override
     public void visit(NewExprNode node) {
         currentFunction.newNum++;
-        IRType baseType = toIRType(node.typeName, program);
         if (!node.isArray) {
-            IRClassType classType = (IRClassType) baseType;
-            node.irVal = new RegVar(irPtrType, "%new_class." + currentFunction.newNum);
+            IRClassType classType = program.getClassType(node.typeName.typeName);
+            node.irVal = new RegVar(irPtrType, "%new_class_" + node.typeName.typeName + "." + classType.gerNewTime());
             int classSize = (classType.bitSize);
             currentBlock.addIns(new CallIns("@malloc", node.irVal, new IntLiteral(classSize)));
             if (classType.constructor != null) {
-                currentBlock.addIns(new CallIns("@" + node.typeName.typeName + "." + node.typeName.typeName, null, node.irVal));
+                currentBlock.addIns(new CallIns(irVoidType, classType.constructor.irFuncName, null));
             }
         } else {
-            if (node.exprs.isEmpty()) {
+            if (node.lengths.isEmpty()) {
                 node.irVal = new NullLiteral();
-            }
-            if (node.arrDim == 1) {
-                node.irVal = new RegVar(irPtrType, "%new_array." + currentFunction.newNum);
-                if (baseType.equals(irIntType)) {
-                    currentBlock.addIns(new CallIns("@_newBoolArray", node.irVal, getValue(node.exprs.get(0))));
-                } else if (baseType.equals(irBoolType)) {
-                    currentBlock.addIns(new CallIns("@_newIntArray", node.irVal, getValue(node.exprs.get(0))));
-                } else { //string&class
-                    currentBlock.addIns(new CallIns("@_newPtrArray", node.irVal, getValue(node.exprs.get(0))));
+            } else {
+                ArrayList<Entity> lengths = new ArrayList<>();
+                for (var lengthNode : node.lengths) {
+                    lengthNode.accept(this);
+                    lengths.add(getValue(lengthNode));
                 }
+                node.irVal = newFunction(0, node.arrDim, lengths, toIRType(node.typeName));
             }
-        }
 
+        }
     }
 
     @Override
     public void visit(TernaryExprNode node) {
-        ++currentFunction.ternaryNum;
+        int ternaryNum = ++currentFunction.ternaryNum;
         node.lExpr.accept(this);
-        BasicBlock nextBlock = new BasicBlock("end_ternary." + currentFunction.ternaryNum);
-        BasicBlock Block1 = new BasicBlock("first_ternary." + currentFunction);
-        BasicBlock Block2 = new BasicBlock("second_ternary." + currentFunction);
-        BasicBlock tmpBlock = currentBlock;
-        nextBlock.exitInstruction = tmpBlock.exitInstruction;
-        tmpBlock.exitInstruction = new BranchIns(getValue(node.lExpr), Block1, Block2);
+        BasicBlock nextBlock = new BasicBlock("ternary_end." + ternaryNum);
+        BasicBlock Block1 = new BasicBlock("ternary_first." + ternaryNum);
+        BasicBlock Block2 = new BasicBlock("ternary_second." + ternaryNum);
+        nextBlock.exitInstruction = currentBlock.exitInstruction;
+        currentBlock.exitInstruction = new BranchIns(getValue(node.lExpr), Block1, Block2);
         currentBlock = Block1;
         currentFunction.addBlock(Block1);
+        currentBlock.exitInstruction = new BranchIns(nextBlock);
         node.mExpr.accept(this);
         Entity value1 = getValue(node.mExpr);
-        currentBlock.exitInstruction = new BranchIns(nextBlock);
         currentBlock = Block2;
         currentFunction.addBlock(Block2);
+        currentBlock.exitInstruction = new BranchIns(nextBlock);
         node.rExpr.accept(this);
         Entity value2 = getValue(node.rExpr);
-        currentBlock.exitInstruction = new BranchIns(nextBlock);
         currentBlock = nextBlock;
-        node.irVal = new RegVar(toIRType(node.mExpr.type), "%value_ternary." + currentFunction.ternaryNum);
+        currentFunction.addBlock(nextBlock);
+        node.irVal = new RegVar(toIRType(node.mExpr.type), "%ternary_value." + ternaryNum);
         PhiIns phi = new PhiIns(node.irVal);
         phi.addPair(value1, Block1);
         phi.addPair(value2, Block2);

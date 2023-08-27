@@ -1,14 +1,15 @@
 package IR.instruction;
 
-import IR.Entity;
+import IR.Entity.Entity;
 import IR.type.IRType;
-import IR.variable.LocalVar;
-import IR.variable.RegVar;
+import IR.type.IRVoidType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class CallIns extends Instruction {//todo print的时候需要考虑，如果是void就不用把result打印出来
+import static IR.type.IRTypes.irVoidType;
+
+public class CallIns extends Instruction {
     IRType returnType;
     String funcName;
     public ArrayList<Entity> args = new ArrayList<>();
@@ -21,7 +22,7 @@ public class CallIns extends Instruction {//todo print的时候需要考虑，�
         args.addAll(Arrays.asList(arguments));
     }
 
-    public CallIns(IRType type,String funcName, Entity result, Entity... arguments) {
+    public CallIns(IRType type, String funcName, Entity result, Entity... arguments) {
         returnType = type;
         this.funcName = funcName;
         this.result = result;
@@ -34,4 +35,22 @@ public class CallIns extends Instruction {//todo print的时候需要考虑，�
         this.result = result;
     }
 
+    @Override
+    public void Print() {
+        if (returnType.equals(irVoidType)) {
+            System.out.print("call void " + funcName + "(");
+        } else {
+            System.out.print(result.toString() + " = call " + returnType.toString() + " " + funcName + "(");
+        }
+        for (int i = 0; i < args.size(); ++i) {
+            System.out.print(args.get(i).type.toString() + " " + args.get(i).toString());
+            if (i != args.size() - 1) {
+                System.out.print(", ");
+            } else {
+                System.out.println(")");
+            }
+        }
+        if (args.isEmpty()) System.out.println(")");
+
+    }
 }

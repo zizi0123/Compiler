@@ -1,6 +1,6 @@
 package ast.util.scope;
 
-import IR.Entity;
+import IR.Entity.Entity;
 import ast.SingleParameter;
 import ast.def.ClassDefNode;
 import ast.def.FuncDefNode;

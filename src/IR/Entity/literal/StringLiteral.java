@@ -1,5 +1,6 @@
-package IR.literal;
+package IR.Entity.literal;
 
+import IR.BasicBlock;
 import ast.util.constValue.StringConst;
 
 import static IR.type.IRTypes.irPtrType;
@@ -7,17 +8,11 @@ import static IR.type.IRTypes.irPtrType;
 public class StringLiteral extends Literal{
     public String val;
     public int id;
-
     public String name;
-
     public static int strNum = 0;
 
-    public StringLiteral(String val) {
-        this.type = irPtrType;
-        this.val = val;
-        ++strNum;
-        this.id = strNum;
-        this.name = "@str."+this.id;
+    public String toIrVal(){
+        return val.replace("\\","\\\\").replace("\n","\\0A").replace("\"","\\22");
     }
 
     public StringLiteral(StringConst str) {
@@ -29,9 +24,7 @@ public class StringLiteral extends Literal{
     }
 
     @Override
-    public String getName() {
+    public String toString() {
         return name;
     }
-
-
 }

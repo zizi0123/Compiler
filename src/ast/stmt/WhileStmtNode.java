@@ -6,7 +6,7 @@ import ast.util.position.Position;
 
 public class WhileStmtNode extends StmtNode {
     public ExprNode condition;
-    public StmtNode stmts; //todo is an arraylist better?
+    public StmtNode stmts;
 
     public WhileStmtNode(Position pos){
         super(pos);

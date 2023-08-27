@@ -1,23 +1,12 @@
 package IR.instruction.icmp;
 
-import IR.Entity;
+import IR.Entity.Entity;
+import IR.instruction.BinaryOperationIns;
 import IR.instruction.Instruction;
 import IR.type.IRType;
 
-public class Eq extends Instruction {
-    IRType type;
-
-    Entity lhs;
-
-    Entity rhs;
-
-    Entity result;
-
+public class Eq extends BinaryOperationIns {
     public Eq(Entity l,Entity r,Entity res){
-        type = l.type;
-        lhs = l;
-        rhs = r;
-        result = res;
+        super(l,r,"icmp eq",res);
     }
-
 }

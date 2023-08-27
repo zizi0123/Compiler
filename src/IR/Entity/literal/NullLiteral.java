@@ -1,5 +1,4 @@
-package IR.literal;
-import IR.type.IRPtrType;
+package IR.Entity.literal;
 
 import static IR.type.IRTypes.*;
 
@@ -9,7 +8,7 @@ public class NullLiteral extends Literal{
     }
 
     @Override
-    public String getName() {
-        return null;
+    public String toString() {
+        return "null";
     }
 }

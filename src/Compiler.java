@@ -1,3 +1,4 @@
+import IR.IRBuilder;
 import ast.ASTBuilder;
 import ast.ProgramNode;
 import grammar.MxLexer;
@@ -22,10 +23,10 @@ public class Compiler {
         try {
             compile(input);
         } catch (SyntaxError syntaxError) {
-            System.err.println(syntaxError.message + "in line" + syntaxError.pos.getRow() + ", column" + syntaxError.pos.getCol());
+            System.err.println(syntaxError.message + " in line" + syntaxError.pos.getRow() + ", column" + syntaxError.pos.getCol());
             System.exit(1);
         } catch (SemanticError semanticError) {
-            System.err.println(semanticError.message + "in line" + semanticError.pos.getRow() + ", column" + semanticError.pos.getCol());
+            System.err.println(semanticError.message + " in line" + semanticError.pos.getRow() + ", column" + semanticError.pos.getCol());
             System.exit(2);
         } catch (Exception error) {
             System.err.println("COMPILER FAIL!!");
@@ -47,17 +48,17 @@ public class Compiler {
         ProgramNode programNode;
         programNode = (ProgramNode) astBuilder.visitProgram(parseTreeRoot);
         GlobalScope globalScope = new GlobalScope();
-        System.out.println("AST build finish!");
 
         //symbol collect
         SymbolCollector symbolCollector = new SymbolCollector(globalScope);
         symbolCollector.visit(programNode);
-        System.out.println("symbol collect finish!");
 
         //semantic check
         TypeChecker typeChecker = new TypeChecker(globalScope);
         typeChecker.visit(programNode);
-        System.out.println("semantic check finish!");
 
+        //ir
+        IRBuilder irBuilder = new IRBuilder();
+        irBuilder.visit(programNode);
     }
 }

@@ -168,7 +168,6 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         } else if (ctx.exprStmt() != null) {
             return visitExprStmt(ctx.exprStmt());
         }
-        //todo error
         return null;
     }
 
@@ -382,7 +381,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
             } else {
                 sizeAppeared = true;
                 if (!nullAppeared) {
-                    newExprNode.exprs.add((ExprNode) visit(arrayIndexCtx.expression()));
+                    newExprNode.lengths.add((ExprNode) visit(arrayIndexCtx.expression()));
                 } else {
                     throw new SyntaxError("invalid new array expression", pos);
                 }

@@ -11,7 +11,7 @@ public class NewExprNode extends ExprNode{
     public TypeName typeName;
     public String irClassName;
     public int arrDim;
-    public ArrayList<ExprNode> exprs = new ArrayList<>();
+    public ArrayList<ExprNode> lengths = new ArrayList<>();
 
     public NewExprNode(Position pos){
         super(pos);

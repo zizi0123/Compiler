@@ -1,9 +1,7 @@
-package IR.variable;
+package IR.Entity.variable;
 
-import IR.Entity;
+import IR.Entity.Entity;
 import IR.type.IRType;
-
-import javax.lang.model.element.TypeElement;
 
 public class LocalVar extends Entity {
     public IRType type;
@@ -18,7 +16,7 @@ public class LocalVar extends Entity {
     }
 
     @Override
-    public String getName() {
+    public String toString() {
         return name;
     }
 

@@ -1,4 +1,4 @@
-package IR.literal;
+package IR.Entity.literal;
 
 import ast.util.constValue.IntConst;
 
@@ -16,8 +16,9 @@ public class IntLiteral extends Literal {
         this.value = value;
         this.type = irIntType;
     }
+
     @Override
-    public String getName() {
-        return null;
+    public String toString() {
+        return Integer.toString(value);
     }
 }

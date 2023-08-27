@@ -68,6 +68,7 @@ public class TypeChecker implements ASTVisitor {
                 }
             }
         }
+        currentScope = currentScope.parentScope;
     }
 
     @Override
@@ -130,7 +131,7 @@ public class TypeChecker implements ASTVisitor {
         if (currentScope.parentScope == null) {
             node.irVarName = "@" + node.name;
         } else {
-            node.irVarName = "%" + node.name + currentScope.scopeNum;
+            node.irVarName = "%" + node.name + "." + currentScope.scopeNum;
         }
     }
 
@@ -309,7 +310,7 @@ public class TypeChecker implements ASTVisitor {
             }
         } else {
             globalScope.checkTypeName(node.typeName, node.pos);
-            for (var expr : node.exprs) {
+            for (var expr : node.lengths) {
                 expr.accept(this);
                 if (!expr.type.equals(intType)) {
                     throw new SemanticError("expression type error: size expression type is not int", expr.pos);
@@ -502,22 +503,22 @@ public class TypeChecker implements ASTVisitor {
                 case "length" -> {
                     node.function = GlobalScope.length;
                     node.type = functionType;
-                    node.irFuncName = "@string_" + node.function.funcName;
+                    node.irFuncName = "@string." + node.function.funcName;
                 }
                 case "substring" -> {
                     node.function = GlobalScope.substring;
                     node.type = functionType;
-                    node.irFuncName = "@string_" + node.function.funcName;
+                    node.irFuncName = "@string." + node.function.funcName;
                 }
                 case "parseInt" -> {
                     node.function = GlobalScope.parseInt;
                     node.type = functionType;
-                    node.irFuncName = "@string_" + node.function.funcName;
+                    node.irFuncName = "@string." + node.function.funcName;
                 }
                 case "ord" -> {
                     node.function = GlobalScope.ord;
                     node.type = functionType;
-                    node.irFuncName = "@string_" + node.function.funcName;
+                    node.irFuncName = "@string." + node.function.funcName;
                 }
                 default ->
                         throw new SemanticError("function " + node.memberName + "is not defined for string", node.pos);
@@ -528,7 +529,7 @@ public class TypeChecker implements ASTVisitor {
             if (node.memberName.equals("size")) {
                 node.function = GlobalScope.size;
                 node.type = functionType;
-                node.irFuncName = "@array_" + node.function.funcName;
+                node.irFuncName = "@array." + node.function.funcName;
             }
             return;
         }

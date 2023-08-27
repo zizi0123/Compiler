@@ -1,18 +1,11 @@
 package IR.instruction.arithmetic;
 
-import IR.Entity;
+import IR.Entity.Entity;
+import IR.instruction.BinaryOperationIns;
 import IR.instruction.Instruction;
 
-public class Or extends Instruction {
-    public Entity lhs;
-
-    public Entity rhs;
-
-    public Entity result;
-
+public class Or extends BinaryOperationIns {
     public Or(Entity l,Entity r,Entity res){
-        lhs = l;
-        rhs = r;
-        result = res;
+        super(l,r,"or",res);
     }
 }

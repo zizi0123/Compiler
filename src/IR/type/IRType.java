@@ -9,7 +9,10 @@ import static IR.type.IRTypes.*;
 
 public abstract class IRType {
     public String typeName;
-    int bitSize;
+    public int bitSize;
+    public String toString(){
+        return typeName;
+    };
 
     public IRType(String typeName, int bitSize) {
         this.typeName = typeName;
@@ -26,8 +29,8 @@ public abstract class IRType {
         throw new RuntimeException();
     }
 
-    public static IRType toIRType(TypeName typeName, Program program) {
-        if (typeName.isClass) return program.getClassType("%class." + typeName.typeName);
+
+    public static IRType toIRType(TypeName typeName) {
         if (typeName.typeName.equals("int")) {
             return irIntType;
         }

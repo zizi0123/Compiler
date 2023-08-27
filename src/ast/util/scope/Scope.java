@@ -1,6 +1,5 @@
 package ast.util.scope;
 
-import IR.Entity;
 import ast.def.ClassDefNode;
 import ast.util.type.ASTTypes;
 import ast.util.type.ASTType;

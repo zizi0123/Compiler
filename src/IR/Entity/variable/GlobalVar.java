@@ -1,10 +1,7 @@
-package IR.variable;
+package IR.Entity.variable;
 
-import IR.Entity;
+import IR.Entity.Entity;
 import IR.type.IRType;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class GlobalVar extends Entity {
 
@@ -21,7 +18,7 @@ public class GlobalVar extends Entity {
         loadNum = 0;
     }
     @Override
-    public String getName() {
+    public String toString() {
         return name;
     }
 
