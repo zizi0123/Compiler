@@ -84,12 +84,12 @@ public class Program {
                         "declare i32 @string.parseInt(ptr %str)\n" +
                         "declare i32 @string.ord(ptr %str, i32 %pos)\n" +
                         "declare ptr @string.add(ptr %lhs, ptr %rhs)\n" +
-                        "declare i1 @string.equal(ptr %lhs, ptr %rhs)\n" +
-                        "declare i1 @string.notEqual(ptr %lhs, ptr %rhs)\n" +
-                        "declare i1 @string.less(ptr %lhs, ptr %rhs)\n" +
-                        "declare i1 @string.greater(ptr %lhs, ptr %rhs)\n" +
-                        "declare i1 @string.lessEqual(ptr %lhs, ptr %rhs)\n" +
-                        "declare i1 @string.greaterEqual(ptr %lhs, ptr %rhs)declare ptr @malloc(i32 %size)\n" +
+                        "declare i1 @string.eq(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.ne(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.lt(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.gt(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.ge(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.le(ptr %lhs, ptr %rhs)declare ptr @malloc(i32 %size)\n" +
                         "declare ptr @_newPtrArray(i32 %size)\n" +
                         "declare ptr @_newIntArray(i32 %size)\n" +
                         "declare ptr @_newBoolArray(i32 %size)\n";

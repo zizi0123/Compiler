@@ -33,18 +33,19 @@ void printlnInt(int a){
 char *getString(){
     char *str = malloc(256);
     scanf("%s",str);
-    return s;
+    return str;
 }
 
 int getInt(){
     int a;
-    scanf("%d",a);
+    scanf("%d",&a);
     return a;
 }
 
 char *toString(int a){
     char *str = malloc(256);
     sprintf(str,"%d",a);
+    return str;
 }
 
 int string_length(char *str){
@@ -82,27 +83,27 @@ char *string_add(char *str1,char *str2){
 }
 
 bool string_eq(char *str1,char *str2){
-    return strcmp(st1,str2) == 0;
+    return strcmp(str1,str2) == 0;
 }
 
 bool string_ne(char *str1,char *str2){
-    return strcmp(st1,str2) != 0;
+    return strcmp(str1,str2) != 0;
 }
 
 bool string_lt(char *str1,char *str2){
-    return strcmp(st1,str2) < 0;
+    return strcmp(str1,str2) < 0;
 }
 
 bool string_gt(char *str1,char *str2){
-    return strcmp(st1,str2) > 0;
+    return strcmp(str1,str2) > 0;
 }
 
 bool string_ge(char *str1,char *str2){
-    return strcmp(st1,str2) >= 0;
+    return strcmp(str1,str2) >= 0;
 }
 
 bool string_le(char *str1,char *str2){
-    return strcmp(st1,str2) <= 0;
+    return strcmp(str1,str2) <= 0;
 }
 
 int array_size(void *_this){
@@ -133,7 +134,6 @@ void *_newBoolArray(int size){
 
 
 
-//todo 处理array.size.很可能需要在irbuilder中处理，而不是写一个c函数。
 
 
 

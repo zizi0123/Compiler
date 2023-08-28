@@ -8,6 +8,14 @@ e7.mx
 e8.mx
 e9.mx
 e10.mx
+shortest_path/dijkstra.mx
+shortest_path/floyd.mx
+shortest_path/spfa.mx
+sorting/bubble_sort.mx
+sorting/merge_sort.mx
+sorting/quick_sort.mx
+sorting/selection_sort.mx
+std/queue.mt
 t1.mx
 t2.mx
 t3.mx

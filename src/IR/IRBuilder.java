@@ -48,7 +48,7 @@ public class IRBuilder implements ASTVisitor {
                 if (classDefNode.constructor != null) {
                     IRFunction func = new IRFunction("@" + classDefNode.className + "." + classDefNode.className, true, irVoidType);
                     program.functions.put(func.irFuncName, func);
-                    classType.constructor = currentFunction;
+                    classType.constructor = func;
                 }
                 for (var function : classDefNode.functions.values()) {
                     IRFunction classMethod = new IRFunction(function.irFuncName, true, toIRType(function.returnType));
@@ -722,6 +722,8 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(TernaryExprNode node) {
+        boolean isVoid = node.mExpr.type.isVoid;
+        Entity value1 = null,value2 = null;
         int ternaryNum = ++currentFunction.ternaryNum;
         node.lExpr.accept(this);
         BasicBlock nextBlock = new BasicBlock("ternary_end." + ternaryNum);
@@ -733,18 +735,26 @@ public class IRBuilder implements ASTVisitor {
         currentFunction.addBlock(Block1);
         currentBlock.exitInstruction = new BranchIns(nextBlock);
         node.mExpr.accept(this);
-        Entity value1 = getValue(node.mExpr);
+        if(!isVoid) {
+            value1 = getValue(node.mExpr);
+        }
+        BasicBlock endBlock1 = currentBlock;
         currentBlock = Block2;
         currentFunction.addBlock(Block2);
         currentBlock.exitInstruction = new BranchIns(nextBlock);
         node.rExpr.accept(this);
-        Entity value2 = getValue(node.rExpr);
+        if(!isVoid){
+            value2 = getValue(node.rExpr);
+        }
+        BasicBlock endBlock2 = currentBlock;
         currentBlock = nextBlock;
         currentFunction.addBlock(nextBlock);
-        node.irVal = new RegVar(toIRType(node.mExpr.type), "%ternary_value." + ternaryNum);
-        PhiIns phi = new PhiIns(node.irVal);
-        phi.addPair(value1, Block1);
-        phi.addPair(value2, Block2);
-        currentBlock.addIns(phi);
+        if(!isVoid) {
+            node.irVal = new RegVar(toIRType(node.mExpr.type), "%ternary_value." + ternaryNum);
+            PhiIns phi = new PhiIns(node.irVal);
+            phi.addPair(value1, endBlock1);
+            phi.addPair(value2, endBlock2);
+            currentBlock.addIns(phi);
+        }
     }
 }
