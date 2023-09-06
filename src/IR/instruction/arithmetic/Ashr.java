@@ -1,10 +1,9 @@
 package IR.instruction.arithmetic;
 
 import IR.Entity.Entity;
-import IR.instruction.BinaryOperationIns;
-import IR.instruction.Instruction;
+import IR.instruction.ArithmeticIns;
 
-public class Ashr extends BinaryOperationIns {
+public class Ashr extends ArithmeticIns {
     public Ashr(Entity l,Entity r,Entity res){
         super(l,r,"ashr",res);
     }

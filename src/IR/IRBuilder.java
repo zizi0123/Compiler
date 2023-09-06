@@ -29,12 +29,12 @@ public class IRBuilder implements ASTVisitor {
 
 
     IRClassType currentClass;
-    Program program;
+    public IRProgram irProgram;
     BasicBlock currentBlock, continueToBlock, breakToBlock;
     IR.IRFunction currentFunction;
 
     public IRBuilder() {
-        program = new Program();
+        irProgram = new IRProgram();
     }
 
     void IRSymbolCollect(ProgramNode node) {
@@ -44,19 +44,19 @@ public class IRBuilder implements ASTVisitor {
                 for (var member : classDefNode.members.values()) {
                     classType.addType(member);
                 }
-                program.classes.put(classType.typeName, classType);
+                irProgram.classes.put(classType.typeName, classType);
                 if (classDefNode.constructor != null) {
                     IRFunction func = new IRFunction("@" + classDefNode.className + "." + classDefNode.className, true, irVoidType);
-                    program.functions.put(func.irFuncName, func);
+                    irProgram.functions.put(func.irFuncName, func);
                     classType.constructor = func;
                 }
                 for (var function : classDefNode.functions.values()) {
                     IRFunction classMethod = new IRFunction(function.irFuncName, true, toIRType(function.returnType));
-                    program.functions.put(classMethod.irFuncName, classMethod);
+                    irProgram.functions.put(classMethod.irFuncName, classMethod);
                 }
             } else if (def instanceof FuncDefNode funcDefNode) {
                 IRFunction func = new IRFunction(funcDefNode.irFuncName, false, toIRType(funcDefNode.returnType));
-                program.functions.put(func.irFuncName, func);
+                irProgram.functions.put(func.irFuncName, func);
             }
         }
     }
@@ -103,17 +103,17 @@ public class IRBuilder implements ASTVisitor {
                 visit((VarDefNode) def);
             }
         }
-        if (!program.initFunction.entryBlock.instructions.isEmpty()) {
-            program.functions.put(program.initFunction.irFuncName, program.initFunction);
-            IRFunction mainFunc = program.functions.get("@main");
+        if (!irProgram.initFunction.entryBlock.instructions.isEmpty()) {
+            irProgram.functions.put(irProgram.initFunction.irFuncName, irProgram.initFunction);
+            IRFunction mainFunc = irProgram.functions.get("@main");
             mainFunc.entryBlock.instructions.add(0, new CallIns(irVoidType, "@global_init", null));
         }
-        program.Print();
+//        irProgram.Print();
     }
 
     @Override
     public void visit(FuncDefNode node) {
-        currentFunction = program.functions.get(node.irFuncName);
+        currentFunction = irProgram.functions.get(node.irFuncName);
         currentBlock = currentFunction.entryBlock;
         if (node.funcName.equals("main")) {
             currentBlock.exitInstruction = new ReturnIns(new IntLiteral(0));
@@ -126,7 +126,7 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(ClassDefNode node) {
-        currentClass = program.classes.get("%class." + node.className);
+        currentClass = irProgram.classes.get("%class." + node.className);
         if (node.constructor != null) visit(node.constructor);
         for (var function : node.functions.values()) {
             visitClassMethod(function);
@@ -135,7 +135,7 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(ClassConstructorNode node) {
-        currentFunction = program.functions.get("@" + node.className + "." + node.className);
+        currentFunction = irProgram.functions.get("@" + node.className + "." + node.className);
         currentBlock = currentFunction.entryBlock;
         currentFunction.addParaThis();
         LocalVar thisPtr = new LocalVar("%this", irPtrType);
@@ -146,7 +146,7 @@ public class IRBuilder implements ASTVisitor {
     }
 
     public void visitClassMethod(FuncDefNode funcDefNode) {
-        currentFunction = program.functions.get(funcDefNode.irFuncName);
+        currentFunction = irProgram.functions.get(funcDefNode.irFuncName);
         currentBlock = currentFunction.entryBlock;
         currentFunction.addParaThis();
         LocalVar thisPtr = new LocalVar("%this", irPtrType);
@@ -170,7 +170,7 @@ public class IRBuilder implements ASTVisitor {
     public void visit(SingleVarDefNode node) {
         if (node.irVarName.startsWith("@")) {
             GlobalVar var = new GlobalVar(node.irVarName, toIRType(node.type));
-            program.globalVars.put(var.name, var);
+            irProgram.globalVars.put(var.name, var);
             if (node.expr != null) {
                 if (node.expr instanceof ConstExprNode) {
                     node.expr.accept(this);
@@ -179,8 +179,8 @@ public class IRBuilder implements ASTVisitor {
                     var.initVal = defaultVal(var.type);
                     IR.IRFunction tmpFunc = currentFunction;
                     BasicBlock tmpBlock = currentBlock;
-                    currentFunction = program.initFunction;
-                    currentBlock = program.initFunction.entryBlock;
+                    currentFunction = irProgram.initFunction;
+                    currentBlock = irProgram.initFunction.entryBlock;
                     node.expr.accept(this);
                     currentBlock.addIns(new StoreIns(getValue(node.expr), var.name));
                     currentBlock = tmpBlock;
@@ -376,7 +376,7 @@ public class IRBuilder implements ASTVisitor {
             node.irVal = currentFunction.localVars.get("%this"); //必在类函数内，在类函数的开头已经定义过局部变量%this
         } else { //string literal
             StringLiteral str = new StringLiteral((StringConst) node.value);
-            program.stringLiterals.add(str);
+            irProgram.stringLiterals.add(str);
             node.irVal = str;
         }
     }
@@ -386,7 +386,7 @@ public class IRBuilder implements ASTVisitor {
         if (!node.isFunction) { //如果这个varExpr是函数，那么irFuncName已经在type checker中处理好了
             if (!node.isMember) {
                 if (node.irVarName.startsWith("@")) {
-                    node.irVal = program.globalVars.get(node.irVarName);
+                    node.irVal = irProgram.globalVars.get(node.irVarName);
                 } else {
                     node.irVal = currentFunction.localVars.get(node.irVarName);
                 }
@@ -453,7 +453,7 @@ public class IRBuilder implements ASTVisitor {
                     case "<=" -> "@string.le";
                     default -> "@string.ge";
                 };
-                callNum = program.getBuildInCallTime(funcName);
+                callNum = irProgram.getBuildInCallTime(funcName);
                 if (node.op.equals("+")) {
                     node.irVal = new RegVar(irPtrType, "%" + funcName.substring(1) + "_result." + callNum);
                 } else {
@@ -562,7 +562,7 @@ public class IRBuilder implements ASTVisitor {
         node.func.accept(this);
         String irFuncName = node.func.irFuncName;
         CallIns callIns;
-        int buildInCallTime = program.getBuildInCallTime(irFuncName);
+        int buildInCallTime = irProgram.getBuildInCallTime(irFuncName);
         if (buildInCallTime != -1) {  //build-in function
             node.irVal = new RegVar(toIRType(node.func.function.returnType), "%" + irFuncName.substring(1) + "_result." + buildInCallTime);
             callIns = new CallIns(irFuncName, node.irVal);
@@ -578,7 +578,7 @@ public class IRBuilder implements ASTVisitor {
                 callIns.args.add(getValue(arg));
             }
         } else {
-            IRFunction function = program.functions.get(irFuncName);
+            IRFunction function = irProgram.functions.get(irFuncName);
             function.callNum++;
             node.irVal = new RegVar(function.returnType, "%" + irFuncName.substring(1) + "_result." + function.callNum);
             callIns = new CallIns(irFuncName, node.irVal);
@@ -616,7 +616,7 @@ public class IRBuilder implements ASTVisitor {
         node.obj.accept(this);
         if (node.function == null) { //如果node.function != null,已经在typecheck中处理好了irFuncName
             Entity ptr = getValue(node.obj);
-            IRClassType classType = program.classes.get(node.irClassName);
+            IRClassType classType = irProgram.classes.get(node.irClassName);
             int num = classType.getMemberNum(node.memberName);
             String name = "%" + node.irClassName.substring(7) + "." + node.memberName + "_ptr." + classType.getGEPtime(node.memberName);
             RegVar memberPtr = new RegVar(irPtrType, name);
@@ -698,7 +698,7 @@ public class IRBuilder implements ASTVisitor {
     public void visit(NewExprNode node) {
         currentFunction.newNum++;
         if (!node.isArray) {
-            IRClassType classType = program.getClassType(node.typeName.typeName);
+            IRClassType classType = irProgram.getClassType(node.typeName.typeName);
             node.irVal = new RegVar(irPtrType, "%new_class_" + node.typeName.typeName + "." + classType.gerNewTime());
             int classSize = (classType.bitSize);
             currentBlock.addIns(new CallIns("@malloc", node.irVal, new IntLiteral(classSize)));

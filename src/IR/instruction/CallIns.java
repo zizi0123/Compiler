@@ -1,6 +1,7 @@
 package IR.instruction;
 
 import IR.Entity.Entity;
+import IR.IRVisitor;
 import IR.type.IRType;
 import IR.type.IRVoidType;
 
@@ -11,9 +12,9 @@ import static IR.type.IRTypes.irVoidType;
 
 public class CallIns extends Instruction {
     IRType returnType;
-    String funcName;
+    public String funcName;
     public ArrayList<Entity> args = new ArrayList<>();
-    Entity result;
+    public Entity result;
 
     public CallIns(String funcName, Entity result, Entity... arguments) {
         returnType = result.type;
@@ -53,4 +54,9 @@ public class CallIns extends Instruction {
         if (args.isEmpty()) System.out.println(")");
 
     }
+
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
+    }
+
 }

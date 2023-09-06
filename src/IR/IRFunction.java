@@ -16,13 +16,13 @@ import static IR.type.IRTypes.irVoidType;
 public class IRFunction {
 
     public boolean isClassMethod;
-    String irFuncName;
+    public String irFuncName;
 
     public IRType returnType;
-    ArrayList<RegVar> parameters = new ArrayList<>();
+    public ArrayList<RegVar> parameters = new ArrayList<>();
     public HashMap<String, LocalVar> localVars = new HashMap<>();
     //    public HashMap<String,Integer> localVarsLoadNum = new HashMap<>();
-    ArrayList<BasicBlock> blocks = new ArrayList<>();
+    public ArrayList<BasicBlock> blocks = new ArrayList<>();
     public BasicBlock entryBlock;
     int ifStmtNum = 0;
     int whileStmtNum = 0;
@@ -80,6 +80,10 @@ public class IRFunction {
             block.print();
         }
         System.out.print("}\n");
+    }
+
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 
 }

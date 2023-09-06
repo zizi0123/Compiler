@@ -29,4 +29,7 @@ public class BasicBlock {
             exitInstruction.Print();
         }
     }
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
+    }
 }

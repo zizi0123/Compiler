@@ -9,14 +9,14 @@ import java.util.HashMap;
 
 import static IR.type.IRTypes.irVoidType;
 
-public class Program {
+public class IRProgram {
     HashMap<String, IRClassType> classes = new HashMap<>();
 
-    HashMap<String, IRFunction> functions = new HashMap<>();
+    public HashMap<String, IRFunction> functions = new HashMap<>();
 
-    HashMap<String, GlobalVar> globalVars = new HashMap<>();
+    public HashMap<String, GlobalVar> globalVars = new HashMap<>();
 
-    ArrayList<StringLiteral> stringLiterals = new ArrayList<>();
+    public ArrayList<StringLiteral> stringLiterals = new ArrayList<>();
 
     public IRFunction initFunction;
 
@@ -27,7 +27,7 @@ public class Program {
     public HashMap<String, Integer> buildInCallTime = new HashMap<>();
 
 
-    public Program() {
+    public IRProgram() {
         initFunction = new IRFunction("@global_init", false, irVoidType);
         buildInCallTime.put("@print", 0);
         buildInCallTime.put("@println", 0);
@@ -95,6 +95,10 @@ public class Program {
                         "declare ptr @_newBoolArray(i32 %size)\n";
         System.out.println(buildIn);
         for (var function : functions.values()) function.Print();
+    }
+
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 
 }

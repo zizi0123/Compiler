@@ -1,7 +1,5 @@
 package IR.type;
 
-import IR.BasicBlock;
-import IR.Program;
 import ast.util.type.ASTType;
 import ast.util.type.TypeName;
 

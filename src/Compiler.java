@@ -1,4 +1,6 @@
 import IR.IRBuilder;
+import assembly.InsSelector;
+import assembly.Module;
 import ast.ASTBuilder;
 import ast.ProgramNode;
 import grammar.MxLexer;
@@ -60,5 +62,10 @@ public class Compiler {
         //ir
         IRBuilder irBuilder = new IRBuilder();
         irBuilder.visit(programNode);
+
+        //asm
+        Module module = new Module();
+        InsSelector insSelector = new InsSelector(module);
+        insSelector.visit(irBuilder.irProgram);
     }
 }

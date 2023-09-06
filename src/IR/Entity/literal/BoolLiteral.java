@@ -5,7 +5,7 @@ import ast.util.constValue.BoolConst;
 import static IR.type.IRTypes.*;
 
 public class BoolLiteral extends Literal {
-    boolean value;
+    public boolean value;
 
     public BoolLiteral(BoolConst a) {
         this.value = a.value;

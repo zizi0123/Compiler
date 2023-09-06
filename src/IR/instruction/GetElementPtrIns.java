@@ -1,19 +1,20 @@
 package IR.instruction;
 
 import IR.Entity.Entity;
+import IR.IRVisitor;
 import IR.type.IRType;
 import IR.Entity.variable.RegVar;
 
 import static IR.type.IRTypes.irPtrType;
 
 public class GetElementPtrIns extends Instruction {
-    IRType type;
+    public IRType type;
 
-    Entity ptrVal;
+    public Entity ptrVal;
 
-    Entity idx1;
+    public Entity idx1;
 
-    Entity idx2;
+    public Entity idx2;
 
     public String valuePtrName;
 
@@ -34,4 +35,10 @@ public class GetElementPtrIns extends Instruction {
             System.out.println(valuePtrName + " = getelementptr " + type.toString() + ", ptr " + ptrVal.toString() + ", " + idx1.type.toString() + " " + idx1.toString());
         }
     }
+
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
+    }
+
+
 }

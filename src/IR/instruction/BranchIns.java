@@ -2,6 +2,7 @@ package IR.instruction;
 
 import IR.BasicBlock;
 import IR.Entity.Entity;
+import IR.IRVisitor;
 
 public class BranchIns extends Instruction {
     public Entity condition; //i1
@@ -9,6 +10,8 @@ public class BranchIns extends Instruction {
     public BasicBlock trueBlock;
 
     public BasicBlock falseBlock;
+
+    public IcmpIns icmpIns;
 
     public BranchIns(BasicBlock jumpToBlock) {
         trueBlock = jumpToBlock;
@@ -22,10 +25,15 @@ public class BranchIns extends Instruction {
 
     @Override
     public void Print() {
-        if(condition == null){
-            System.out.println("br label %"+trueBlock.label);
-        }else{
-            System.out.println("br i1 "+condition.toString()+", label %"+trueBlock.label+", label %"+falseBlock.label);
+        if (condition == null) {
+            System.out.println("br label %" + trueBlock.label);
+        } else {
+            System.out.println("br i1 " + condition.toString() + ", label %" + trueBlock.label + ", label %" + falseBlock.label);
         }
     }
+
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
+    }
+
 }

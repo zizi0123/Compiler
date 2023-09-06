@@ -1,11 +1,9 @@
 package IR.instruction.icmp;
 
 import IR.Entity.Entity;
-import IR.instruction.BinaryOperationIns;
-import IR.instruction.Instruction;
-import IR.type.IRType;
+import IR.instruction.IcmpIns;
 
-public class Sge extends BinaryOperationIns {
+public class Sge extends IcmpIns {
     public Sge(Entity l,Entity r,Entity res){
         super(l,r,"icmp sge",res);
     }

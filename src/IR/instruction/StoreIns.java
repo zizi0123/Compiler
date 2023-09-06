@@ -1,6 +1,7 @@
 package IR.instruction;
 
 import IR.Entity.Entity;
+import IR.IRVisitor;
 import IR.type.IRType;
 
 public class StoreIns extends Instruction{
@@ -18,5 +19,9 @@ public class StoreIns extends Instruction{
     @Override
     public void Print() {
         System.out.println("store "+type.toString()+" "+val.toString()+", ptr "+ptrName);
+    }
+
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 }
