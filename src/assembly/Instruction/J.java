@@ -1,16 +1,22 @@
 package assembly.Instruction;
 
-import assembly.Block;
+import assembly.ASMBlock;
+import assembly.ASMVisitor;
 
 public class J extends ASMIns{
-    public Block jumpTo;
+    public ASMBlock jumpTo;
 
-    public J(Block b){
+    public J(ASMBlock b){
         jumpTo = b;
     }
 
     @Override
     public String toString() {
         return "j  "+jumpTo.name+'\n';
+    }
+
+    @Override
+    public void accept(ASMVisitor visitor) {
+        visitor.visit(this);
     }
 }

@@ -1,14 +1,14 @@
 package assembly.Instruction;
 
+import assembly.ASMVisitor;
 import assembly.operand.*;
 
 public class Sw extends ASMIns {
-    Reg rd;
-    Reg rs;
-    Reg rt;
-    Imm offset;
-
-    GlobalVal symbol;
+    public Reg rd;
+    public Reg rs;
+    public Reg rt;
+    public Imm offset;
+    public GlobalVal symbol;
 
 
     public Sw(Reg rs, Reg rd, Imm offset, String c) {
@@ -35,5 +35,10 @@ public class Sw extends ASMIns {
         }
         result += "       #" + comment+'\n';
         return result;
+    }
+
+    @Override
+    public void accept(ASMVisitor visitor) {
+        visitor.visit(this);
     }
 }

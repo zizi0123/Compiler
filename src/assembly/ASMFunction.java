@@ -10,13 +10,13 @@ import static java.lang.Math.max;
 public class ASMFunction {
     public String funcName;
 
-    public ArrayList<Block> blocks = new ArrayList<>();
+    public ArrayList<ASMBlock> blocks = new ArrayList<>();
 
-    public Block initBlock;
+    public ASMBlock initBlock;
 
     public StackVal raStack;  //栈上存放ra的位置。如果本函数不是叶函数，则需要把返回地址储存在栈上的此位置。
 
-    public HashMap<String, Block> irName2Block = new HashMap<>();
+    public HashMap<String, ASMBlock> irName2Block = new HashMap<>();
 
     public ArrayList<StackVal> params = new ArrayList<>(); //上一个栈帧的底部
 

@@ -1,6 +1,7 @@
 package assembly.Instruction;
 
 import IR.instruction.CallIns;
+import assembly.ASMVisitor;
 
 public class Call extends ASMIns{
     String funcName;
@@ -12,5 +13,10 @@ public class Call extends ASMIns{
     @Override
     public String toString() {
         return "call  "+funcName+'\n';
+    }
+
+    @Override
+    public void accept(ASMVisitor visitor) {
+        visitor.visit(this);
     }
 }

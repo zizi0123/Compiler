@@ -20,7 +20,7 @@ public class InsSelector implements IRVisitor {
     Module currentModule;
     ASMFunction currentFunction;
 
-    Block currentBlock;
+    ASMBlock currentBlock;
 
     ValueAllocator valueAllocator;
 
@@ -74,7 +74,7 @@ public class InsSelector implements IRVisitor {
         return valueAllocator.getPReg("zero");
     }
 
-    void toExpectReg(Entity entity, Reg target, Block block) {
+    void toExpectReg(Entity entity, Reg target, ASMBlock block) {
         if (entity instanceof RegVar regVar) {
             block.addIns(new Mv(target, valueAllocator.getAsmReg(regVar.name)));
         } else if (entity instanceof BoolLiteral boolLiteral) {
@@ -139,7 +139,7 @@ public class InsSelector implements IRVisitor {
 
     void functionInit(IRFunction node) {
         valueAllocator.calleeSaveTo.clear();
-        Block initBlock = new Block(".L-" + node.irFuncName.substring(1) + "-init", "");
+        ASMBlock initBlock = new ASMBlock(".L-" + node.irFuncName.substring(1) + "-init", "");
         currentFunction.blocks.add(initBlock);
         currentFunction.initBlock = initBlock;
         if (!currentFunction.funcName.equals("main")) {
@@ -168,7 +168,7 @@ public class InsSelector implements IRVisitor {
     public void visit(IRFunction node) {
         functionInit(node);
         for (var basicBlock : node.blocks) { //symbol collect
-            Block block = new Block(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), basicBlock.label);
+            ASMBlock block = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), basicBlock.label);
             currentFunction.blocks.add(block);
             currentFunction.irName2Block.put(basicBlock.label, block);
         }
@@ -189,6 +189,8 @@ public class InsSelector implements IRVisitor {
             currentFunction.stack.add(0, new StackVal());
         }
         valueAllocator.irReg2asmReg.clear();
+        NaiveRegAllocator naiveRegAllocator = new NaiveRegAllocator(valueAllocator);
+        naiveRegAllocator.visit(currentModule);
         getOffset(currentFunction);
     }
 
@@ -225,6 +227,7 @@ public class InsSelector implements IRVisitor {
         Reg rd = getReg(node.value.toString());
         String comment = node.toString();
         int size = node.value.type.equals(irBoolType) ? 1 : 4;
+        rd.size = size;
         if (currentModule.irName2GbVal.containsKey(node.ptrName)) { //从全局变量中load
             GlobalVal gv = currentModule.irName2GbVal.get(node.ptrName);
             if (size == 1) {
@@ -280,7 +283,7 @@ public class InsSelector implements IRVisitor {
 
     @Override
     public void visit(BranchIns node) {
-        Block block1 = currentFunction.irName2Block.get(node.trueBlock.label);
+        ASMBlock block1 = currentFunction.irName2Block.get(node.trueBlock.label);
         if (node.condition == null) {
             currentBlock.exitInses.add(new J(block1));
         } else {
@@ -302,7 +305,7 @@ public class InsSelector implements IRVisitor {
                 branch = new Branch(cond, r1, block1, "eq");
             }
             currentBlock.exitInses.add(branch);
-            Block block2 = currentFunction.irName2Block.get(node.falseBlock.label);
+            ASMBlock block2 = currentFunction.irName2Block.get(node.falseBlock.label);
             currentBlock.exitInses.add(new J(block2));
         }
     }
@@ -311,12 +314,12 @@ public class InsSelector implements IRVisitor {
     public void visit(ArithmeticIns node) {
         Reg rd = getReg(node.result);
         Reg rs1 = getReg(node.operand1);
-        ASMarithmeticIns ins;
+        ASMarithmetic ins;
         Val v = getVal(node.operand2);
         if (v instanceof Imm imm) {
-            ins = new ASMarithmeticIns(rd, rs1, imm, node.operator);
+            ins = new ASMarithmetic(rd, rs1, imm, node.operator);
         } else {
-            ins = new ASMarithmeticIns(rd, rs1, (Reg) v, node.operator);
+            ins = new ASMarithmetic(rd, rs1, (Reg) v, node.operator);
         }
         currentBlock.addIns(ins);
     }
@@ -331,9 +334,9 @@ public class InsSelector implements IRVisitor {
         Val v2 = getVal(node.operand2);
         if (node.operator.equals("ne") || node.operator.equals("eq")) {
             if (v2 instanceof Imm imm) {
-                currentBlock.addIns(new ASMarithmeticIns(rd, rs1, imm,"xor"));
+                currentBlock.addIns(new ASMarithmetic(rd, rs1, imm,"xor"));
             } else {
-                currentBlock.addIns(new ASMarithmeticIns(rd, rs1, (Reg) v2, "xor"));
+                currentBlock.addIns(new ASMarithmetic(rd, rs1, (Reg) v2, "xor"));
             }
             if (node.operator.equals("ne")) {
                 currentBlock.addIns(new Slt(rd, rd, new Imm(1), true));
@@ -388,15 +391,15 @@ public class InsSelector implements IRVisitor {
         if (idx1 != valueAllocator.getAsmReg("zero")) { //idx1!=0
             ifShift = true;
             if (!node.type.equals(irBoolType)) {
-                currentBlock.addIns(new ASMarithmeticIns(idx1, idx1, new Imm(2), "shl"));
+                currentBlock.addIns(new ASMarithmetic(idx1, idx1, new Imm(2), "shl"));
             }
-            currentBlock.addIns(new ASMarithmeticIns(rd, ptr, idx1, "add", node.toString()));
+            currentBlock.addIns(new ASMarithmetic(rd, ptr, idx1, "add", node.toString()));
         } else if (node.idx2 != null) {
             Reg idx2 = getReg(node.idx2);
             if (idx2 != valueAllocator.getPReg("zero")) { //idx2!=0
                 ifShift = true;
-                currentBlock.addIns(new ASMarithmeticIns(idx2, idx2, new Imm(2), "shl"));
-                currentBlock.addIns(new ASMarithmeticIns(rd, ptr, idx2, "add", node.toString()));
+                currentBlock.addIns(new ASMarithmetic(idx2, idx2, new Imm(2), "shl"));
+                currentBlock.addIns(new ASMarithmetic(rd, ptr, idx2, "add", node.toString()));
             }
         }
         if (!ifShift) {
@@ -423,8 +426,8 @@ public class InsSelector implements IRVisitor {
     @Override
     public void visit(PhiIns node) {
         Reg rd = getReg(node.result);
-        Block block1 = currentFunction.irName2Block.get(node.blocks.get(0).label);
-        Block block2 = currentFunction.irName2Block.get(node.blocks.get(1).label);
+        ASMBlock block1 = currentFunction.irName2Block.get(node.blocks.get(0).label);
+        ASMBlock block2 = currentFunction.irName2Block.get(node.blocks.get(1).label);
         toExpectReg(node.values.get(0), rd, block1);
         toExpectReg(node.values.get(1), rd, block2);
     }

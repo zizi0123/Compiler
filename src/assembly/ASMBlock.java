@@ -2,10 +2,9 @@ package assembly;
 
 import assembly.Instruction.ASMIns;
 
-import javax.xml.stream.events.Comment;
 import java.util.ArrayList;
 
-public class Block {
+public class ASMBlock {
     public String name;
 
     public String comment;
@@ -14,7 +13,7 @@ public class Block {
 
     public ArrayList<ASMIns> exitInses;
 
-    public Block(String n, String c) {
+    public ASMBlock(String n, String c) {
         name = n;
         comment = c;
     }
@@ -29,7 +28,9 @@ public class Block {
             System.out.print("\t" + ins.toString());
         }
         if (exitInses != null) {
-            System.out.print("\t" + exitInses.toString());
+            for(var ins:exitInses){
+                System.out.print("\t" + ins.toString());
+            }
         }
     }
 

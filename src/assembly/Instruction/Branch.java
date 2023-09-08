@@ -1,16 +1,16 @@
 package assembly.Instruction;
 
-import IR.instruction.BranchIns;
-import assembly.Block;
+import assembly.ASMBlock;
+import assembly.ASMVisitor;
 import assembly.operand.Reg;
 
 public class Branch extends ASMIns{
-    Reg rs1;
-    Reg rs2;
-    Block jumpTo;
+    public Reg rs1;
+    public Reg rs2;
+    ASMBlock jumpTo;
     String operator;
 
-    public Branch(Reg r1,Reg r2,Block j,String o){
+    public Branch(Reg r1, Reg r2, ASMBlock j, String o){
         rs1 = r1;
         rs2 = r2;
         jumpTo = j;
@@ -20,5 +20,10 @@ public class Branch extends ASMIns{
     @Override
     public String toString() {
         return operator+"  "+rs1.toString()+", "+rs2.toString()+", "+jumpTo.name+"\n";
+    }
+
+    @Override
+    public void accept(ASMVisitor visitor) {
+        visitor.visit(this);
     }
 }

@@ -67,5 +67,6 @@ public class Compiler {
         Module module = new Module();
         InsSelector insSelector = new InsSelector(module);
         insSelector.visit(irBuilder.irProgram);
+        module.print();
     }
 }

@@ -1,15 +1,16 @@
 package assembly.Instruction;
 
+import assembly.ASMVisitor;
 import assembly.operand.Imm;
 import assembly.operand.Reg;
 
 public class Slt extends ASMIns {
     boolean unsigned;
 
-    Reg rd;
-    Reg rs1;
-    Reg rs2;
-    Imm imm;
+    public Reg rd;
+    public Reg rs1;
+    public Reg rs2;
+    public Imm imm;
 
     public Slt(Reg rd, Reg rs1, Reg rs2, boolean u) {
         this.rd = rd;
@@ -37,5 +38,10 @@ public class Slt extends ASMIns {
             result += rs2.toString();
         }
         return result + '\n';
+    }
+
+    @Override
+    public void accept(ASMVisitor visitor) {
+        visitor.visit(this);
     }
 }

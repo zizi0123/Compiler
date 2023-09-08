@@ -1,15 +1,16 @@
 package assembly.Instruction;
 
+import assembly.ASMVisitor;
 import assembly.operand.*;
 
-public class ASMarithmeticIns extends ASMIns {
-    Reg rd;
-    Reg rs1;
-    Reg rs2;
-    Imm imm;
+public class ASMarithmetic extends ASMIns {
+    public Reg rd;
+    public Reg rs1;
+    public Reg rs2;
+    public Imm imm;
     String operator;
 
-    public ASMarithmeticIns(Reg rd, Reg rs1, Reg rs2, String irOperator) {
+    public ASMarithmetic(Reg rd, Reg rs1, Reg rs2, String irOperator) {
         switch (irOperator) {
             case "ashr" -> operator = "sra";
             case "sdiv" -> operator = "div";
@@ -22,7 +23,7 @@ public class ASMarithmeticIns extends ASMIns {
         this.rs2 = rs2;
     }
 
-    public ASMarithmeticIns(Reg rd, Reg rs1, Reg rs2, String irOperator, String c) {
+    public ASMarithmetic(Reg rd, Reg rs1, Reg rs2, String irOperator, String c) {
         switch (irOperator) {
             case "ashr" -> operator = "sra";
             case "sdiv" -> operator = "div";
@@ -36,7 +37,7 @@ public class ASMarithmeticIns extends ASMIns {
         comment = c;
     }
 
-    public ASMarithmeticIns(Reg rd, Reg rs1, Imm imm, String irOperator) {
+    public ASMarithmetic(Reg rd, Reg rs1, Imm imm, String irOperator) {
         switch (irOperator) {
             case "add", "sub" -> operator = "addi";
             case "and" -> operator = "andi";
@@ -52,7 +53,7 @@ public class ASMarithmeticIns extends ASMIns {
         if (irOperator.equals("sub")) this.imm.val = -this.imm.val;
     }
 
-    public ASMarithmeticIns(Reg rd, Reg rs1, Imm imm, String irOperator, String c) {
+    public ASMarithmetic(Reg rd, Reg rs1, Imm imm, String irOperator, String c) {
         switch (irOperator) {
             case "add", "sub" -> operator = "addi";
             case "and" -> operator = "andi";
@@ -79,5 +80,10 @@ public class ASMarithmeticIns extends ASMIns {
             result += rs2.toString();
         }
         return result+'\n';
+    }
+
+    @Override
+    public void accept(ASMVisitor visitor) {
+        visitor.visit(this);
     }
 }
