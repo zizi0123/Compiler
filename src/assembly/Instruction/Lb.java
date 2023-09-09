@@ -31,10 +31,11 @@ public class Lb extends ASMIns {
     public String toString() {
         String result = "lb  " + rd.toString() + ", ";
         if (symbol != null) {
-            result += symbol.toString() + '\n';
+            result += symbol.toString();
         } else {
-            result += offset.toString() + "(" + rs.toString() + ")\n";
+            result += offset.toString() + "(" + rs.toString()+")";
         }
+        result += "       #" + comment;
         return result;
     }
 

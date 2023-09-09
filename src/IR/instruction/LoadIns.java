@@ -39,8 +39,8 @@ public class LoadIns extends Instruction {
     }
 
     @Override
-    public void Print() {
-        System.out.println(value.toString() + " = load " + type.toString() + ", ptr " + ptrName);
+    public String toString() {
+        return value.toString() + " = load " + type.toString() + ", ptr " + ptrName + '\n';
     }
 
     public void accept(IRVisitor visitor) {

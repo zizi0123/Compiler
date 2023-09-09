@@ -21,8 +21,8 @@ public class AllocaIns extends Instruction {
     }
 
     @Override
-    public void Print() {
-        System.out.println(varName + " = alloca " + type.toString());
+    public String toString() {
+        return varName + " = alloca " + type.toString()+"\n";
     }
 
     public void accept(IRVisitor visitor) {

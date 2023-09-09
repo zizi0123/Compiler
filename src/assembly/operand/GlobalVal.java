@@ -20,7 +20,7 @@ public class GlobalVal extends Val {
         System.out.print("\t.section data\n" +
                 "\t.globl " + name + "\n" +
                 name + ":\n" +
-                "\t.word\t" + initVal.toString() + "\n+" +
+                "\t.word\t" + initVal.toString() + "\n" +
                 "\n");
     }
 }

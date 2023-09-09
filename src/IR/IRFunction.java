@@ -7,6 +7,7 @@ import IR.Entity.variable.LocalVar;
 import IR.Entity.variable.RegVar;
 import ast.SingleParameter;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -65,21 +66,21 @@ public class IRFunction {
         localVars.put(var.name, var);
     }
 
-    void Print() {
-        System.out.print("define " + returnType.toString() + " " + irFuncName + "(");
+    void Print(PrintWriter pw) {
+        pw.print("define " + returnType.toString() + " " + irFuncName + "(");
         for (int i = 0; i < parameters.size(); ++i) {
-            System.out.print(parameters.get(i).type.toString() + " " + parameters.get(i).toString());
+            pw.print(parameters.get(i).type.toString() + " " + parameters.get(i).toString());
             if (i != parameters.size() - 1) {
-                System.out.print(", ");
+                pw.print(", ");
             } else {
-                System.out.print(") {\n");
+                pw.print(") {\n");
             }
         }
-        if(parameters.isEmpty()) System.out.print(") {\n");
+        if(parameters.isEmpty()) pw.print(") {\n");
         for (var block : blocks) {
-            block.print();
+            block.print(pw);
         }
-        System.out.print("}\n");
+        pw.print("}\n");
     }
 
     public void accept(IRVisitor visitor) {

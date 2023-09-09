@@ -11,7 +11,10 @@ import IR.instruction.*;
 import assembly.Instruction.*;
 import assembly.operand.*;
 
+import java.io.File;
+
 import static IR.type.IRTypes.irBoolType;
+import static IR.type.IRTypes.irVoidType;
 import static java.lang.Math.max;
 
 
@@ -19,13 +22,13 @@ public class InsSelector implements IRVisitor {
 
     Module currentModule;
     ASMFunction currentFunction;
-
     ASMBlock currentBlock;
-
     ValueAllocator valueAllocator;
+
 
     public InsSelector(Module module) {
         this.currentModule = module;
+        valueAllocator = new ValueAllocator();
     }
 
     void getOffset(ASMFunction func) {
@@ -139,7 +142,7 @@ public class InsSelector implements IRVisitor {
 
     void functionInit(IRFunction node) {
         valueAllocator.calleeSaveTo.clear();
-        ASMBlock initBlock = new ASMBlock(".L-" + node.irFuncName.substring(1) + "-init", "");
+        ASMBlock initBlock = new ASMBlock(".L-" + node.irFuncName.substring(1) + "-init", "init");
         currentFunction.blocks.add(initBlock);
         currentFunction.initBlock = initBlock;
         if (!currentFunction.funcName.equals("main")) {
@@ -159,9 +162,14 @@ public class InsSelector implements IRVisitor {
             var paramVReg = getReg(node.parameters.get(i).name);
             var stackParam = new StackVal();
             currentFunction.params.add(stackParam);
-            Lw lw = new Lw(paramVReg, valueAllocator.getPReg("sp"), new StackOffset(stackParam), "get param");
+            Lw lw = new Lw(paramVReg, valueAllocator.getPReg("sp"), new StackOffset(stackParam), "get param\n");
             initBlock.addIns(lw);
         }
+        currentFunction.raStack = new StackVal();
+        currentFunction.stack.add(0, currentFunction.raStack); //ra
+        StackOffset offset = new StackOffset(currentFunction.raStack);
+        Sw raStore = new Sw(valueAllocator.getPReg("ra"), valueAllocator.getPReg("sp"), offset, "store ra\n");
+        initBlock.addIns(raStore);
     }
 
     @Override
@@ -176,19 +184,13 @@ public class InsSelector implements IRVisitor {
             currentBlock = currentFunction.irName2Block.get(basicBlock.label);
             visit(basicBlock);
         }
-        if (currentFunction.maxArgNum >= 0) { //有调用函数，需要储存ra
-            currentFunction.raStack = new StackVal();
-            currentFunction.stack.add(0, currentFunction.raStack); //ra
-            StackOffset offset = new StackOffset(currentFunction.raStack);
-            Sw raStore = new Sw(valueAllocator.getPReg("ra"), valueAllocator.getPReg("sp"), offset, "store ra");
-            currentFunction.initBlock.addIns(raStore);
-        }
         //下面这段代码的正确性有待考证
         int stackarg = max(currentFunction.maxArgNum - 8, 0);
         for (int i = 0; i < stackarg; ++i) {
             currentFunction.stack.add(0, new StackVal());
         }
         valueAllocator.irReg2asmReg.clear();
+        valueAllocator.virtualRegs.clear();
         NaiveRegAllocator naiveRegAllocator = new NaiveRegAllocator(valueAllocator);
         naiveRegAllocator.visit(currentModule);
         getOffset(currentFunction);
@@ -292,17 +294,17 @@ public class InsSelector implements IRVisitor {
                 Reg rs1 = getReg(node.icmpIns.operand1);
                 Reg rs2 = getReg(node.icmpIns.operand2);
                 switch (node.icmpIns.operator) {
-                    case "eq" -> branch = new Branch(rs1, rs2, block1, "beq");
-                    case "ne" -> branch = new Branch(rs1, rs2, block1, "bne");
-                    case "sge" -> branch = new Branch(rs1, rs2, block1, "bge");
-                    case "sgt" -> branch = new Branch(rs2, rs1, block1, "blt");
-                    case "sle" -> branch = new Branch(rs2, rs1, block1, "bge");
+                    case "icmp eq" -> branch = new Branch(rs1, rs2, block1, "beq");
+                    case "icmp ne" -> branch = new Branch(rs1, rs2, block1, "bne");
+                    case "icmp sge" -> branch = new Branch(rs1, rs2, block1, "bge");
+                    case "icmp sgt" -> branch = new Branch(rs2, rs1, block1, "blt");
+                    case "icmp sle" -> branch = new Branch(rs2, rs1, block1, "bge");
                     default -> branch = new Branch(rs1, rs2, block1, "blt");
                 }
             } else {
                 Reg cond = getReg(node.condition);
                 Reg r1 = getReg(new IntLiteral(1));
-                branch = new Branch(cond, r1, block1, "eq");
+                branch = new Branch(cond, r1, block1, "beq");
             }
             currentBlock.exitInses.add(branch);
             ASMBlock block2 = currentFunction.irName2Block.get(node.falseBlock.label);
@@ -315,11 +317,16 @@ public class InsSelector implements IRVisitor {
         Reg rd = getReg(node.result);
         Reg rs1 = getReg(node.operand1);
         ASMarithmetic ins;
-        Val v = getVal(node.operand2);
-        if (v instanceof Imm imm) {
+        Val v2;
+        if (node.operator.equals("add") || node.operator.equals("sub") || node.operator.equals("and") || node.operator.equals("ashr") || node.operator.equals("or") || node.operator.equals("shl") || node.operator.equals("xor")) {
+            v2 = getVal(node.operand2);
+        } else {
+            v2 = getReg(node.operand2);
+        }
+        if (v2 instanceof Imm imm) {
             ins = new ASMarithmetic(rd, rs1, imm, node.operator);
         } else {
-            ins = new ASMarithmetic(rd, rs1, (Reg) v, node.operator);
+            ins = new ASMarithmetic(rd, rs1, (Reg) v2, node.operator);
         }
         currentBlock.addIns(ins);
     }
@@ -332,19 +339,19 @@ public class InsSelector implements IRVisitor {
         Reg rs2 = getReg(node.operand2);
         Val v1 = getVal(node.operand1);
         Val v2 = getVal(node.operand2);
-        if (node.operator.equals("ne") || node.operator.equals("eq")) {
+        if (node.operator.equals("icmp ne") || node.operator.equals("icmp eq")) {
             if (v2 instanceof Imm imm) {
-                currentBlock.addIns(new ASMarithmetic(rd, rs1, imm,"xor"));
+                currentBlock.addIns(new ASMarithmetic(rd, rs1, imm, "xor"));
             } else {
                 currentBlock.addIns(new ASMarithmetic(rd, rs1, (Reg) v2, "xor"));
             }
-            if (node.operator.equals("ne")) {
+            if (node.operator.equals("icmp ne")) {
                 currentBlock.addIns(new Slt(rd, rd, new Imm(1), true));
             } else {
                 currentBlock.addIns(new Slt(rd, rd, valueAllocator.getPReg("zero"), true));
             }
         } else {
-            if (node.operator.equals("slt") || node.operator.equals("sge")) {
+            if (node.operator.equals("icmp slt") || node.operator.equals("icmp sge")) {
                 if (v2 instanceof Imm imm) {
                     currentBlock.addIns(new Slt(rd, rs1, imm, false));
                 } else {
@@ -357,7 +364,7 @@ public class InsSelector implements IRVisitor {
                     currentBlock.addIns(new Slt(rd, rs2, (Reg) v1, false));
                 }
             }
-            if (node.operator.equals("sle") || node.operator.equals("sge")) {
+            if (node.operator.equals("icmp sle") || node.operator.equals("icmp sge")) {
                 currentBlock.addIns(new Slt(rd, rd, new Imm(1), true));
             }
         }
@@ -367,17 +374,16 @@ public class InsSelector implements IRVisitor {
     public void visit(CallIns node) {
         currentFunction.maxArgNum = max(currentFunction.maxArgNum, node.args.size());
         for (int i = 0; i < 8 && i < node.args.size(); ++i) {
-            Mv mv = new Mv(valueAllocator.getPReg("a" + i), getReg(node.args.get(i)));
-            currentBlock.addIns(mv);
+            toExpectReg(node.args.get(i),valueAllocator.getPReg("a" + i),currentBlock);
         }
         for (int i = 8; i < node.args.size(); ++i) {
-            Sw sw = new Sw(getReg(node.args.get(i)), valueAllocator.getPReg("sp"), new Imm((i - 8) * 4), "put param");
+            Sw sw = new Sw(getReg(node.args.get(i)), valueAllocator.getPReg("sp"), new Imm((i - 8) * 4), "put param\n");
             currentBlock.addIns(sw);
         }
         Call call = new Call(node.funcName.substring(1));
         currentBlock.addIns(call);
-        if (node.result != null) {
-            Mv mv = new Mv(valueAllocator.getPReg("a0"), getReg(node.result));
+        if (!node.returnType.equals(irVoidType)) {
+            Mv mv = new Mv(getReg(node.result), valueAllocator.getPReg("a0"));
             currentBlock.addIns(mv);
         }
     }
@@ -403,7 +409,7 @@ public class InsSelector implements IRVisitor {
             }
         }
         if (!ifShift) {
-            currentBlock.addIns(new Mv(rd, ptr, node.toString()));
+            currentBlock.addIns(new Mv(rd, ptr));
         }
     }
 
@@ -417,7 +423,7 @@ public class InsSelector implements IRVisitor {
             }
         }
         StackOffset offset = new StackOffset(currentFunction.raStack);
-        Lw loadRa = new Lw(valueAllocator.getPReg("ra"), valueAllocator.getPReg("sp"), offset, "load ra");
+        Lw loadRa = new Lw(valueAllocator.getPReg("ra"), valueAllocator.getPReg("sp"), offset, "load ra\n");
         currentBlock.exitInses.add(loadRa);
         currentBlock.exitInses.add(new Ret(currentFunction));
     }

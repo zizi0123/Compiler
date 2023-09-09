@@ -18,7 +18,7 @@ public class GlobalString extends Val {
     public void print() {
         System.out.print(".section rodata\n" +
                 name + ":\n" +
-                "\t.asciz \"\"\n" +
+                "\t.asciz \""+value+"\"\n" +
                 "\n");
     }
 }

@@ -1,9 +1,12 @@
 package IR;
 
 import IR.Entity.literal.StringLiteral;
+import IR.Entity.literal.voidLiteral;
+import IR.instruction.ReturnIns;
 import IR.type.IRClassType;
 import IR.Entity.variable.GlobalVar;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -29,6 +32,7 @@ public class IRProgram {
 
     public IRProgram() {
         initFunction = new IRFunction("@global_init", false, irVoidType);
+        initFunction.entryBlock.exitInstruction = new ReturnIns(new voidLiteral());
         buildInCallTime.put("@print", 0);
         buildInCallTime.put("@println", 0);
         buildInCallTime.put("@printInt", 0);
@@ -60,15 +64,15 @@ public class IRProgram {
         return -1;
     }
 
-    public void Print() {
+    public void Print(PrintWriter pw) {
         for (var irclass : classes.values()) {
-            System.out.println(irclass.toDefineString());
+            pw.println(irclass.toDefineString());
         }
         for (var globalVar : globalVars.values()) {
-            System.out.println(globalVar.name+" = global "+globalVar.type.toString()+" "+globalVar.initVal.toString());
+            pw.println(globalVar.name+" = global "+globalVar.type.toString()+" "+globalVar.initVal.toString());
         }
         for (var string : stringLiterals) {
-            System.out.println(string.name + " = private unnamed_addr constant [" + (string.val.length() + 1) + " x i8] c\"" + string.toIrVal() + "\\00\"");
+            pw.println(string.name + " = private unnamed_addr constant [" + (string.val.length() + 1) + " x i8] c\"" + string.toIrVal() + "\\00\"");
         }
         String buildIn =
                 "declare void @print(ptr %str)\n" +
@@ -93,8 +97,9 @@ public class IRProgram {
                         "declare ptr @_newPtrArray(i32 %size)\n" +
                         "declare ptr @_newIntArray(i32 %size)\n" +
                         "declare ptr @_newBoolArray(i32 %size)\n";
-        System.out.println(buildIn);
-        for (var function : functions.values()) function.Print();
+        pw.println(buildIn);
+        for (var function : functions.values()) function.Print(pw);
+        pw.close();
     }
 
     public void accept(IRVisitor visitor) {

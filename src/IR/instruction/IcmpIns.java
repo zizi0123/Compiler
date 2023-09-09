@@ -24,8 +24,8 @@ public abstract class IcmpIns extends Instruction {
     }
 
     @Override
-    public void Print() {
-        System.out.println(result.toString()+" = "+operator+" "+type.toString()+" "+operand1.toString()+", "+operand2.toString());
+    public String toString(){
+        return result.toString()+" = "+operator+" "+type.toString()+" "+operand1.toString()+", "+operand2.toString()+'\n';
     }
 
     public void accept(IRVisitor visitor) {

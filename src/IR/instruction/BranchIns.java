@@ -24,11 +24,11 @@ public class BranchIns extends Instruction {
     }
 
     @Override
-    public void Print() {
+    public String toString() {
         if (condition == null) {
-            System.out.println("br label %" + trueBlock.label);
+            return "br label %" + trueBlock.label + '\n';
         } else {
-            System.out.println("br i1 " + condition.toString() + ", label %" + trueBlock.label + ", label %" + falseBlock.label);
+            return "br i1 " + condition.toString() + ", label %" + trueBlock.label + ", label %" + falseBlock.label + '\n';
         }
     }
 

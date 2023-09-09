@@ -24,8 +24,8 @@ public class PhiIns extends Instruction{
         blocks.add(block);
     }
     @Override
-    public void Print() {
-        System.out.println(result.toString()+" = phi "+type.toString()+" [ "+values.get(0).toString()+", %"+blocks.get(0).label+" ], [ "+values.get(1).toString()+", %"+blocks.get(1).label+" ]");
+    public String toString() {
+        return result.toString()+" = phi "+type.toString()+" [ "+values.get(0).toString()+", %"+blocks.get(0).label+" ], [ "+values.get(1).toString()+", %"+blocks.get(1).label+" ]\n";
     }
 
     public void accept(IRVisitor visitor) {

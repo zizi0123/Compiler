@@ -11,7 +11,7 @@ public class ASMBlock {
 
     public ArrayList<ASMIns> instructions = new ArrayList<>();
 
-    public ArrayList<ASMIns> exitInses;
+    public ArrayList<ASMIns> exitInses = new ArrayList<>();
 
     public ASMBlock(String n, String c) {
         name = n;
@@ -23,11 +23,12 @@ public class ASMBlock {
     }
 
     public void print() {
-        System.out.print(name + ":\t" + comment + "\n");
+        if(instructions.isEmpty() && exitInses.isEmpty()) return;
+        System.out.print(name + ":\t#" + comment + "\n");
         for (var ins : instructions) {
             System.out.print("\t" + ins.toString());
         }
-        if (exitInses != null) {
+        if (!exitInses.isEmpty()) {
             for(var ins:exitInses){
                 System.out.print("\t" + ins.toString());
             }

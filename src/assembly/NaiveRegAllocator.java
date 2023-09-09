@@ -37,9 +37,9 @@ public class NaiveRegAllocator implements ASMVisitor {
         Reg rd = valueAllocator.getPReg("t1");
         Reg rs = valueAllocator.getPReg("sp");
         if (vreg.size == 1) {
-            currentBlock.addIns(new Lb(rd, rs, new StackOffset(stackVal), "load in t1"));
+            currentBlock.addIns(new Lb(rd, rs, new StackOffset(stackVal), "load in t1\n"));
         } else {
-            currentBlock.addIns(new Lw(rd, rs, new StackOffset(stackVal), "load in t1"));
+            currentBlock.addIns(new Lw(rd, rs, new StackOffset(stackVal), "load in t1\n"));
         }
         return rd;
     }
@@ -49,9 +49,9 @@ public class NaiveRegAllocator implements ASMVisitor {
         Reg rd = valueAllocator.getPReg("t2");
         Reg rs = valueAllocator.getPReg("sp");
         if (vreg.size == 1) {
-            currentBlock.addIns(new Lb(rd, rs, new StackOffset(stackVal), "load in t1"));
+            currentBlock.addIns(new Lb(rd, rs, new StackOffset(stackVal), "load in t1\n"));
         } else {
-            currentBlock.addIns(new Lw(rd, rs, new StackOffset(stackVal), "load in t1"));
+            currentBlock.addIns(new Lw(rd, rs, new StackOffset(stackVal), "load in t1\n"));
         }
         return rd;
     }
@@ -61,11 +61,11 @@ public class NaiveRegAllocator implements ASMVisitor {
         Reg rd = valueAllocator.getPReg("sp");
         StackVal stackVal = getStack(vreg);
         if (vreg.size == 1) {
-            currentBlock.addIns(new Sb(rs, rd, new StackOffset(stackVal), "store from t0"));
+            currentBlock.addIns(new Sb(rs, rd, new StackOffset(stackVal), "store from t0\n"));
         } else {
-            currentBlock.addIns(new Sw(rs, rd, new StackOffset(stackVal), "store from t0"));
+            currentBlock.addIns(new Sw(rs, rd, new StackOffset(stackVal), "store from t0\n"));
         }
-        return rd;
+        return rs;
     }
 
 
@@ -90,8 +90,11 @@ public class NaiveRegAllocator implements ASMVisitor {
     public void visit(ASMBlock node) {
         ArrayList<ASMIns> newInstructions = new ArrayList<>();
         newInstructions.addAll(node.instructions);
-        newInstructions.addAll(node.exitInses);
+        if(!node.exitInses.isEmpty()){
+            newInstructions.addAll(node.exitInses);
+        }
         node.instructions.clear();
+        node.exitInses.clear();
         for (var ins : newInstructions) {
             ins.accept(this);
         }

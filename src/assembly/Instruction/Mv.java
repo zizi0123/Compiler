@@ -12,13 +12,6 @@ public class Mv extends ASMIns{
         rd.size = rs.size;
     }
 
-    public Mv(Reg rd, Reg rs,String c){
-        this.rd = rd;
-        this.rs = rs;
-        rd.size = rs.size;
-        comment = c;
-    }
-
     @Override
     public String toString() {
         return "mv  "+rd.toString()+", "+rs.toString()+'\n';

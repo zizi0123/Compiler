@@ -34,7 +34,11 @@ public class ASMFunction {
         System.out.print("\t.text\n" +
                 "\t.globl " + funcName + "\n" +
                 funcName + ":\n");
-        for(var block:blocks){
+        if (!stack.isEmpty()) {
+            int length = (stack.size()+3)/4*16;
+            System.out.println("\taddi\tsp, sp, -" + length);
+        }
+        for (var block : blocks) {
             block.print();
         }
         System.out.println();

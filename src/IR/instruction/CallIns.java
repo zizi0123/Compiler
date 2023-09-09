@@ -11,7 +11,7 @@ import java.util.Arrays;
 import static IR.type.IRTypes.irVoidType;
 
 public class CallIns extends Instruction {
-    IRType returnType;
+    public IRType returnType;
     public String funcName;
     public ArrayList<Entity> args = new ArrayList<>();
     public Entity result;
@@ -37,22 +37,23 @@ public class CallIns extends Instruction {
     }
 
     @Override
-    public void Print() {
+    public String toString() {
+        StringBuilder resultstr;
         if (returnType.equals(irVoidType)) {
-            System.out.print("call void " + funcName + "(");
+            resultstr = new StringBuilder("call void " + funcName + "(");
         } else {
-            System.out.print(result.toString() + " = call " + returnType.toString() + " " + funcName + "(");
+            resultstr = new StringBuilder(result.toString() + " = call " + returnType.toString() + " " + funcName + "(");
         }
         for (int i = 0; i < args.size(); ++i) {
-            System.out.print(args.get(i).type.toString() + " " + args.get(i).toString());
+            resultstr.append(args.get(i).type.toString()).append(" ").append(args.get(i).toString());
             if (i != args.size() - 1) {
-                System.out.print(", ");
+                resultstr.append(", ");
             } else {
-                System.out.println(")");
+                resultstr.append(")");
             }
         }
-        if (args.isEmpty()) System.out.println(")");
-
+        if (args.isEmpty()) resultstr.append(")\n");
+        return resultstr.toString();
     }
 
     public void accept(IRVisitor visitor) {

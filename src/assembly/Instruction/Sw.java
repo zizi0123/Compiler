@@ -33,7 +33,7 @@ public class Sw extends ASMIns {
         } else {
             result += offset.toString() + "(" + rd.toString() + ")";
         }
-        result += "       #" + comment+'\n';
+        result += "       #" + comment;
         return result;
     }
 

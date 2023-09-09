@@ -18,6 +18,10 @@ import ast.expr.*;
 import ast.stmt.*;
 import ast.util.constValue.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import static IR.Entity.literal.Literal.defaultVal;
@@ -32,6 +36,9 @@ public class IRBuilder implements ASTVisitor {
     public IRProgram irProgram;
     BasicBlock currentBlock, continueToBlock, breakToBlock;
     IR.IRFunction currentFunction;
+
+    File irFile = new File("result/output.ll");
+    PrintWriter out1;
 
     public IRBuilder() {
         irProgram = new IRProgram();
@@ -79,7 +86,7 @@ public class IRBuilder implements ASTVisitor {
 
     Entity getValue(RegVar varPtr, IRType type) {
         assert varPtr.type.equals(irPtrType) : "a exprNode's irPtr is not a irPtrType regVar";
-        RegVar value = new RegVar(type, (varPtr.toString() + "_value."+varPtr.getLoadNum()));
+        RegVar value = new RegVar(type, (varPtr.toString() + "_value." + varPtr.getLoadNum()));
         currentBlock.addIns(new LoadIns(varPtr.toString(), type, value.name));
         return value;
     }
@@ -92,7 +99,7 @@ public class IRBuilder implements ASTVisitor {
     }
 
     @Override
-    public void visit(ProgramNode node) {
+    public void visit(ProgramNode node)  {
         IRSymbolCollect(node); //todo check是否有必要
         for (var def : node.defNodes) {
             if (def instanceof FuncDefNode) {
@@ -108,7 +115,17 @@ public class IRBuilder implements ASTVisitor {
             IRFunction mainFunc = irProgram.functions.get("@main");
             mainFunc.entryBlock.instructions.add(0, new CallIns(irVoidType, "@global_init", null));
         }
-//        irProgram.Print();
+        for (var block : irProgram.initFunction.blocks) {
+            if (block.exitInstruction != null) {
+                block.instructions.add(block.exitInstruction);
+            }
+        }
+        try {
+            out1 = new PrintWriter(irFile, StandardCharsets.UTF_8);
+            irProgram.Print(out1);
+        }catch (IOException e){
+            throw new RuntimeException();
+        }
     }
 
     @Override
@@ -117,11 +134,18 @@ public class IRBuilder implements ASTVisitor {
         currentBlock = currentFunction.entryBlock;
         if (node.funcName.equals("main")) {
             currentBlock.exitInstruction = new ReturnIns(new IntLiteral(0));
+        } else if (node.returnType.isVoid) {
+            currentBlock.exitInstruction = new ReturnIns(new voidLiteral());
         }
         if (!node.functionParameterList.isEmpty()) {
             visit(node.functionParameterList);
         }
         visit(node.blockStmt);
+        for (var block : currentFunction.blocks) {
+            if (block.exitInstruction != null) {
+                block.instructions.add(block.exitInstruction);
+            }
+        }
     }
 
     @Override
@@ -723,7 +747,7 @@ public class IRBuilder implements ASTVisitor {
     @Override
     public void visit(TernaryExprNode node) {
         boolean isVoid = node.mExpr.type.isVoid;
-        Entity value1 = null,value2 = null;
+        Entity value1 = null, value2 = null;
         int ternaryNum = ++currentFunction.ternaryNum;
         node.lExpr.accept(this);
         BasicBlock nextBlock = new BasicBlock("ternary_end." + ternaryNum);
@@ -735,7 +759,7 @@ public class IRBuilder implements ASTVisitor {
         currentFunction.addBlock(Block1);
         currentBlock.exitInstruction = new BranchIns(nextBlock);
         node.mExpr.accept(this);
-        if(!isVoid) {
+        if (!isVoid) {
             value1 = getValue(node.mExpr);
         }
         BasicBlock endBlock1 = currentBlock;
@@ -743,13 +767,13 @@ public class IRBuilder implements ASTVisitor {
         currentFunction.addBlock(Block2);
         currentBlock.exitInstruction = new BranchIns(nextBlock);
         node.rExpr.accept(this);
-        if(!isVoid){
+        if (!isVoid) {
             value2 = getValue(node.rExpr);
         }
         BasicBlock endBlock2 = currentBlock;
         currentBlock = nextBlock;
         currentFunction.addBlock(nextBlock);
-        if(!isVoid) {
+        if (!isVoid) {
             node.irVal = new RegVar(toIRType(node.mExpr.type), "%ternary_value." + ternaryNum);
             PhiIns phi = new PhiIns(node.irVal);
             phi.addPair(value1, endBlock1);

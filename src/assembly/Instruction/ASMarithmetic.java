@@ -79,7 +79,12 @@ public class ASMarithmetic extends ASMIns {
         } else {
             result += rs2.toString();
         }
-        return result+'\n';
+        if (comment != null) {
+            result += "       #" + comment;
+        } else {
+            result += '\n';
+        }
+        return result;
     }
 
     @Override

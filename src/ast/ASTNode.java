@@ -2,6 +2,8 @@ package ast;
 
 import ast.util.position.Position;
 
+import java.io.IOException;
+
 abstract public class ASTNode{
     public Position pos;
 
@@ -9,7 +11,7 @@ abstract public class ASTNode{
         this.pos = pos;
     }
 
-    public abstract void accept(ASTVisitor visitor);
+    public abstract void accept(ASTVisitor visitor) ;
 
 }
 

@@ -28,11 +28,11 @@ public class GetElementPtrIns extends Instruction {
 
 
     @Override
-    public void Print() {
+    public String toString() {
         if (idx2 != null) {
-            System.out.println(valuePtrName + " = getelementptr " + type.toString() + ", ptr " + ptrVal.toString() + ", " + idx1.type.toString() + " " + idx1.toString() + ", " + idx2.type.toString() + " " + idx2.toString());
+            return valuePtrName + " = getelementptr " + type.toString() + ", ptr " + ptrVal.toString() + ", " + idx1.type.toString() + " " + idx1.toString() + ", " + idx2.type.toString() + " " + idx2.toString() + '\n';
         } else {
-            System.out.println(valuePtrName + " = getelementptr " + type.toString() + ", ptr " + ptrVal.toString() + ", " + idx1.type.toString() + " " + idx1.toString());
+            return valuePtrName + " = getelementptr " + type.toString() + ", ptr " + ptrVal.toString() + ", " + idx1.type.toString() + " " + idx1.toString() + '\n';
         }
     }
 

@@ -3,6 +3,7 @@ package ast;
 import ast.def.DefinitionNode;
 import ast.util.position.Position;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class ProgramNode extends ASTNode{

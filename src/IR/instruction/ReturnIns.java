@@ -14,9 +14,10 @@ public class ReturnIns extends Instruction {
             this.value = val;
         }
     }
+
     @Override
-    public void Print() {
-        System.out.println("ret " + type.toString() + " " + value.toString());
+    public String toString() {
+        return "ret " + type.toString() + " " + value.toString() + '\n';
     }
 
     public void accept(IRVisitor visitor) {

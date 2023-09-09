@@ -4,7 +4,7 @@ import IR.IRVisitor;
 import ast.ASTVisitor;
 
 public abstract class Instruction {
-    public abstract void Print();
+    public abstract String toString();
 
     public abstract void accept(IRVisitor visitor);
 }

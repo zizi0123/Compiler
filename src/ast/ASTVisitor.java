@@ -5,19 +5,20 @@ import ast.stmt.*;
 import ast.def.*;
 import ast.util.type.ASTTypes;
 
-public interface ASTVisitor extends ASTTypes {
-    public void visit(ProgramNode node);
+import java.io.IOException;
 
+public interface ASTVisitor extends ASTTypes {
+    public void visit(ProgramNode node) ;
     public void visit(FuncDefNode node);
     public void visit(ClassDefNode node);
-    public void visit(VarDefNode node);
-    public void visit(SingleVarDefNode node);
+    public void visit(VarDefNode node) ;
+    public void visit(SingleVarDefNode node) ;
     public void visit(FuncParameterListNode node);
     public void visit(ClassConstructorNode node);
-    public void visit(BlockStmtNode node);
-    public void visit(IfStmtNode node);
-    public void visit(WhileStmtNode node);
-    public void visit(ForStmtNode node);
+    public void visit(BlockStmtNode node) ;
+    public void visit(IfStmtNode node) ;
+    public void visit(WhileStmtNode node) ;
+    public void visit(ForStmtNode node) ;
     public void visit(ContinueStmtNode node);
     public void visit(BreakStmtNode node);
     public void visit(ReturnStmtNode node);

@@ -15,7 +15,8 @@ public class ValueAllocator {
     PhysicalReg[] regs = new PhysicalReg[32];
     HashMap<String, PhysicalReg> ASMName2Preg = new HashMap<>();
     ArrayList<VirtualReg> virtualRegs = new ArrayList<>();
-    public static ArrayList<PhysicalReg> callerSaveRegs, calleeSaveRegs;
+    public static ArrayList<PhysicalReg> callerSaveRegs = new ArrayList<>();
+    public static ArrayList<PhysicalReg> calleeSaveRegs = new ArrayList<>();
     public HashMap<String,VirtualReg> irReg2asmReg = new HashMap<>();
     public HashMap<String, StackVal> irVar2Stack = new HashMap<>();
 
@@ -29,10 +30,10 @@ public class ValueAllocator {
         regs[3].name = "gp";   //global pointer
         regs[4].name = "tp";   //thread pointer
         regs[5].name = "t0";   //temporaries
-        regs[5].name = "t1";   //temporaries
-        regs[6].name = "t2";   //temporaries
-        regs[7].name = "s0";   //saved regs
-        regs[8].name = "s1";   //saved regs
+        regs[6].name = "t1";   //temporaries
+        regs[7].name = "t2";   //temporaries
+        regs[8].name = "s0";   //saved regs
+        regs[9].name = "s1";   //saved regs
         for (int i = 0; i < 8; ++i) {
             regs[i + 10].name = "a" + i; //arguments(a0,a1 :return values)
         }

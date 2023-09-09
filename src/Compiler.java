@@ -14,8 +14,10 @@ import ast.util.error.SemanticError;
 import ast.util.error.SyntaxError;
 import ast.util.scope.GlobalScope;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 
 // Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
 // then press Enter. You can now see whitespace characters in your code.
@@ -67,6 +69,5 @@ public class Compiler {
         Module module = new Module();
         InsSelector insSelector = new InsSelector(module);
         insSelector.visit(irBuilder.irProgram);
-        module.print();
     }
 }
