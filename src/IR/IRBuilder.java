@@ -120,12 +120,12 @@ public class IRBuilder implements ASTVisitor {
                 block.instructions.add(block.exitInstruction);
             }
         }
-        try {
-            out1 = new PrintWriter(irFile, StandardCharsets.UTF_8);
-            irProgram.Print(out1);
-        }catch (IOException e){
-            throw new RuntimeException();
-        }
+//        try {
+//            out1 = new PrintWriter(irFile, StandardCharsets.UTF_8);
+//            irProgram.Print(out1);
+//        }catch (IOException e){
+//            throw new RuntimeException();
+//        }
     }
 
     @Override
