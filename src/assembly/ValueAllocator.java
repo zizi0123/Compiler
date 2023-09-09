@@ -13,7 +13,7 @@ public class ValueAllocator {
 
     HashMap<PhysicalReg, VirtualReg> calleeSaveTo = new HashMap<>(); //被保存的callee save reg
     PhysicalReg[] regs = new PhysicalReg[32];
-    HashMap<String, PhysicalReg> ASMName2Preg = new HashMap<>();
+    static HashMap<String, PhysicalReg> ASMName2Preg = new HashMap<>();
     ArrayList<VirtualReg> virtualRegs = new ArrayList<>();
     public static ArrayList<PhysicalReg> callerSaveRegs = new ArrayList<>();
     public static ArrayList<PhysicalReg> calleeSaveRegs = new ArrayList<>();

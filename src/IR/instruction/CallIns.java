@@ -49,7 +49,7 @@ public class CallIns extends Instruction {
             if (i != args.size() - 1) {
                 resultstr.append(", ");
             } else {
-                resultstr.append(")");
+                resultstr.append(")\n");
             }
         }
         if (args.isEmpty()) resultstr.append(")\n");

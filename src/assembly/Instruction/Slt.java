@@ -29,8 +29,9 @@ public class Slt extends ASMIns {
     @Override
     public String toString() {
         String result = "slt";
-        if (imm != null) result += "i  ";
-        if (unsigned) result += "u  ";
+        if (imm != null) result += "i";
+        if (unsigned) result += "u";
+        result+="  ";
         result += rd.toString() + ", " + rs1.toString() + ", ";
         if (imm != null) {
             result += imm.toString();

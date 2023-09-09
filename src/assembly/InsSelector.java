@@ -167,9 +167,6 @@ public class InsSelector implements IRVisitor {
         }
         currentFunction.raStack = new StackVal();
         currentFunction.stack.add(0, currentFunction.raStack); //ra
-        StackOffset offset = new StackOffset(currentFunction.raStack);
-        Sw raStore = new Sw(valueAllocator.getPReg("ra"), valueAllocator.getPReg("sp"), offset, "store ra\n");
-        initBlock.addIns(raStore);
     }
 
     @Override
@@ -184,6 +181,14 @@ public class InsSelector implements IRVisitor {
             currentBlock = currentFunction.irName2Block.get(basicBlock.label);
             visit(basicBlock);
         }
+        if (currentFunction.maxArgNum >= 0) {//非叶函数
+            StackOffset offset = new StackOffset(currentFunction.raStack);
+            Sw raStore = new Sw(valueAllocator.getPReg("ra"), valueAllocator.getPReg("sp"), offset, "store ra\n");
+            currentFunction.initBlock.addIns(raStore);
+        }else{
+            currentFunction.stack.remove(0); //删去raStack
+            currentFunction.raStack = null;
+        }
         //下面这段代码的正确性有待考证
         int stackarg = max(currentFunction.maxArgNum - 8, 0);
         for (int i = 0; i < stackarg; ++i) {
@@ -191,6 +196,7 @@ public class InsSelector implements IRVisitor {
         }
         valueAllocator.irReg2asmReg.clear();
         valueAllocator.virtualRegs.clear();
+        valueAllocator.irVar2Stack.clear();
         NaiveRegAllocator naiveRegAllocator = new NaiveRegAllocator(valueAllocator);
         naiveRegAllocator.visit(currentModule);
         getOffset(currentFunction);
@@ -374,7 +380,7 @@ public class InsSelector implements IRVisitor {
     public void visit(CallIns node) {
         currentFunction.maxArgNum = max(currentFunction.maxArgNum, node.args.size());
         for (int i = 0; i < 8 && i < node.args.size(); ++i) {
-            toExpectReg(node.args.get(i),valueAllocator.getPReg("a" + i),currentBlock);
+            toExpectReg(node.args.get(i), valueAllocator.getPReg("a" + i), currentBlock);
         }
         for (int i = 8; i < node.args.size(); ++i) {
             Sw sw = new Sw(getReg(node.args.get(i)), valueAllocator.getPReg("sp"), new Imm((i - 8) * 4), "put param\n");
@@ -394,7 +400,7 @@ public class InsSelector implements IRVisitor {
         Reg rd = getReg(node.valuePtrName);
         Reg idx1 = getReg(node.idx1);
         boolean ifShift = false;
-        if (idx1 != valueAllocator.getAsmReg("zero")) { //idx1!=0
+        if (idx1 != valueAllocator.getPReg("zero")) { //idx1!=0
             ifShift = true;
             if (!node.type.equals(irBoolType)) {
                 currentBlock.addIns(new ASMarithmetic(idx1, idx1, new Imm(2), "shl"));
@@ -416,15 +422,14 @@ public class InsSelector implements IRVisitor {
 
     @Override
     public void visit(ReturnIns node) {
-        toExpectReg(node.value, valueAllocator.getPReg("a0"), currentBlock);
+        if(!node.type.equals(irVoidType)) {
+            toExpectReg(node.value, valueAllocator.getPReg("a0"), currentBlock);
+        }
         if (!currentFunction.funcName.equals("main")) {
-            for (var entry : valueAllocator.calleeSaveTo.entrySet()) {
-                currentBlock.addIns(new Mv(entry.getKey(), entry.getValue()));
+            for(var reg : ValueAllocator.calleeSaveRegs){
+                currentBlock.addIns(new Mv(reg,valueAllocator.calleeSaveTo.get(reg)));
             }
         }
-        StackOffset offset = new StackOffset(currentFunction.raStack);
-        Lw loadRa = new Lw(valueAllocator.getPReg("ra"), valueAllocator.getPReg("sp"), offset, "load ra\n");
-        currentBlock.exitInses.add(loadRa);
         currentBlock.exitInses.add(new Ret(currentFunction));
     }
 

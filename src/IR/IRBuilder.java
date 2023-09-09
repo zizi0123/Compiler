@@ -167,6 +167,11 @@ public class IRBuilder implements ASTVisitor {
         currentBlock.addIns(new AllocaIns(thisPtr));
         currentBlock.addIns(new StoreIns(currentFunction.parameters.get(0), thisPtr.name)); //添加局部变量this指针
         visit(node.blockStmt);
+        for (var block : currentFunction.blocks) {
+            if (block.exitInstruction != null) {
+                block.instructions.add(block.exitInstruction);
+            }
+        }
     }
 
     public void visitClassMethod(FuncDefNode funcDefNode) {
@@ -181,6 +186,11 @@ public class IRBuilder implements ASTVisitor {
             funcDefNode.functionParameterList.accept(this);
         }
         visit(funcDefNode.blockStmt);
+        for (var block : currentFunction.blocks) {
+            if (block.exitInstruction != null) {
+                block.instructions.add(block.exitInstruction);
+            }
+        }
     }
 
     @Override
@@ -727,7 +737,7 @@ public class IRBuilder implements ASTVisitor {
             int classSize = (classType.bitSize);
             currentBlock.addIns(new CallIns("@malloc", node.irVal, new IntLiteral(classSize)));
             if (classType.constructor != null) {
-                currentBlock.addIns(new CallIns(irVoidType, classType.constructor.irFuncName, null));
+                currentBlock.addIns(new CallIns(irVoidType, classType.constructor.irFuncName, null,node.irVal));
             }
         } else {
             if (node.lengths.isEmpty()) {

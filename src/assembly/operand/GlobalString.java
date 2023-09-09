@@ -6,7 +6,7 @@ public class GlobalString extends Val {
     public String name;
 
     public GlobalString(String val, String name) {
-        value = val.replace("\\0A", "\n").replace("\\22", "\"");
+        value = val.replace("\\","\\\\").replace("\n", "\\n").replace("\"","\\\"");
         this.name = name;
     }
 
