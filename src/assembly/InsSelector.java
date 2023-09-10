@@ -405,8 +405,10 @@ public class InsSelector implements IRVisitor {
             ifShift = true;
             if (!node.type.equals(irBoolType)) {
                 currentBlock.addIns(new ASMarithmetic(tmp, idx1, new Imm(2), "shl"));
+                currentBlock.addIns(new ASMarithmetic(rd, ptr, tmp, "add", node.toString()));
+            }else{
+                currentBlock.addIns(new ASMarithmetic(rd, ptr, idx1, "add", node.toString()));
             }
-            currentBlock.addIns(new ASMarithmetic(rd, ptr, tmp, "add", node.toString()));
         } else if (node.idx2 != null) {
             Reg idx2 = getReg(node.idx2);
             if (idx2 != valueAllocator.getPReg("zero")) { //idx2!=0
