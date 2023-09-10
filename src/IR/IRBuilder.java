@@ -689,7 +689,7 @@ public class IRBuilder implements ASTVisitor {
             BasicBlock nextBlock = new BasicBlock("new_for_end_" + dim + "." + currentFunction.newNum);
             BasicBlock condBlock = new BasicBlock("new_for_condition_" + dim + "." + currentFunction.newNum);
             BasicBlock bodyBlock = new BasicBlock("new_for_body_" + dim + "." + currentFunction.newNum);
-            BasicBlock stepBlock = new BasicBlock("new_forstep__" + dim + "." + currentFunction.newNum);
+            BasicBlock stepBlock = new BasicBlock("new_for_step_" + dim + "." + currentFunction.newNum);
             nextBlock.exitInstruction = currentBlock.exitInstruction;
             currentBlock.exitInstruction = new BranchIns(condBlock);
 
@@ -704,7 +704,7 @@ public class IRBuilder implements ASTVisitor {
             currentBlock = bodyBlock;
             currentFunction.addBlock(bodyBlock);
             Entity nextDim = newFunction(at + 1, dim, lengthVal, baseType);
-            GetElementPtrIns getElementPtrIns = new GetElementPtrIns(irPtrType, startValue, idxVal, null, "%new_array_" + (at - 1) + "." + currentFunction.newNum);
+            GetElementPtrIns getElementPtrIns = new GetElementPtrIns(irPtrType, startValue, idxVal, null, "%new_array_at_" + at + "." + currentFunction.newNum);
             currentBlock.addIns(getElementPtrIns);
             currentBlock.addIns(new StoreIns(nextDim, getElementPtrIns.valuePtrName));
             bodyBlock.exitInstruction = new BranchIns(stepBlock);
