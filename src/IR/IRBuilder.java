@@ -87,7 +87,7 @@ public class IRBuilder implements ASTVisitor {
     Entity getValue(RegVar varPtr, IRType type) {
         assert varPtr.type.equals(irPtrType) : "a exprNode's irPtr is not a irPtrType regVar";
         RegVar value = new RegVar(type, (varPtr.toString() + "_value." + varPtr.getLoadNum()));
-        currentBlock.addIns(new LoadIns(varPtr.toString(), type, value.name));
+        currentBlock.addIns(new LoadIns(varPtr, type, value));
         return value;
     }
 
@@ -120,12 +120,6 @@ public class IRBuilder implements ASTVisitor {
                 block.instructions.add(block.exitInstruction);
             }
         }
-//        try {
-//            out1 = new PrintWriter(irFile, StandardCharsets.UTF_8);
-//            irProgram.Print(out1);
-//        }catch (IOException e){
-//            throw new RuntimeException();
-//        }
     }
 
     @Override
@@ -165,7 +159,7 @@ public class IRBuilder implements ASTVisitor {
         LocalVar thisPtr = new LocalVar("%this", irPtrType);
         currentFunction.addLocalVar(thisPtr);
         currentBlock.addIns(new AllocaIns(thisPtr));
-        currentBlock.addIns(new StoreIns(currentFunction.parameters.get(0), thisPtr.name)); //添加局部变量this指针
+        currentBlock.addIns(new StoreIns(currentFunction.parameters.get(0), thisPtr)); //添加局部变量this指针
         visit(node.blockStmt);
         for (var block : currentFunction.blocks) {
             if (block.exitInstruction != null) {
@@ -181,7 +175,7 @@ public class IRBuilder implements ASTVisitor {
         LocalVar thisPtr = new LocalVar("%this", irPtrType);
         currentFunction.addLocalVar(thisPtr);
         currentBlock.addIns(new AllocaIns(thisPtr));
-        currentBlock.addIns(new StoreIns(currentFunction.parameters.get(0), thisPtr.name)); //添加局部变量this指针
+        currentBlock.addIns(new StoreIns(currentFunction.parameters.get(0), thisPtr)); //添加局部变量this指针
         if (!funcDefNode.functionParameterList.isEmpty()) {
             funcDefNode.functionParameterList.accept(this);
         }
@@ -216,7 +210,7 @@ public class IRBuilder implements ASTVisitor {
                     currentFunction = irProgram.initFunction;
                     currentBlock = irProgram.initFunction.entryBlock;
                     node.expr.accept(this);
-                    currentBlock.addIns(new StoreIns(getValue(node.expr), var.name));
+                    currentBlock.addIns(new StoreIns(getValue(node.expr), var));
                     currentBlock = tmpBlock;
                     currentFunction = tmpFunc;
                 }
@@ -229,7 +223,7 @@ public class IRBuilder implements ASTVisitor {
             currentBlock.addIns(new AllocaIns(var));
             if (node.expr != null) {
                 node.expr.accept(this);
-                currentBlock.addIns(new StoreIns(getValue(node.expr), var.name));
+                currentBlock.addIns(new StoreIns(getValue(node.expr), var));
             }
         }
     }
@@ -241,7 +235,7 @@ public class IRBuilder implements ASTVisitor {
             LocalVar inPara = new LocalVar(para.irVarName, toIRType(para.type));  //创建局部变量
             currentFunction.addLocalVar(inPara);
             currentBlock.addIns(new AllocaIns(inPara));
-            currentBlock.addIns(new StoreIns(irPara, inPara.name));
+            currentBlock.addIns(new StoreIns(irPara, inPara));
         }
     }
 
@@ -428,7 +422,7 @@ public class IRBuilder implements ASTVisitor {
                 RegVar memberPtr = new RegVar(irPtrType, "%this." + node.varName + "." + currentClass.getGEPtime(node.varName));
                 LoadIns loadIns = new LoadIns(currentFunction.localVars.get("%this"));
                 int idx2 = currentClass.getMemberNum(node.varName);
-                GetElementPtrIns getIns = new GetElementPtrIns(currentClass, loadIns.value, new IntLiteral(0), new IntLiteral(idx2), memberPtr.name); //把指向这个成员的指针存入var
+                GetElementPtrIns getIns = new GetElementPtrIns(currentClass, loadIns.value, new IntLiteral(0), new IntLiteral(idx2), memberPtr); //把指向这个成员的指针存入var
                 currentBlock.addIns(loadIns);
                 currentBlock.addIns(getIns);
                 node.irPtr = memberPtr;
@@ -538,12 +532,12 @@ public class IRBuilder implements ASTVisitor {
             case "++" -> {
                 node.irVal = getValue(node.exprNode);
                 currentBlock.addIns(new Add(node.irVal, new IntLiteral(1), result));
-                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal != null ? node.exprNode.irVal.toString() : node.exprNode.irPtr.toString()));
+                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal != null ? node.exprNode.irVal : node.exprNode.irPtr));
             }
             case "--" -> {
                 node.irVal = getValue(node.exprNode);
                 currentBlock.addIns(new Sub(node.irVal, new IntLiteral(1), result));
-                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal != null ? node.exprNode.irVal.toString() : node.exprNode.irPtr.toString()));
+                currentBlock.addIns(new StoreIns(result, node.exprNode.irVal != null ? node.exprNode.irVal : node.exprNode.irPtr));
             }
             case "-" -> {
                 currentBlock.addIns(new Sub(new IntLiteral(0), getValue(node.exprNode), result));
@@ -569,13 +563,13 @@ public class IRBuilder implements ASTVisitor {
         switch (node.op) {
             case "++" -> {
                 currentBlock.addIns(new Add(getValue(node.expr), new IntLiteral(1), result));
-                currentBlock.addIns(new StoreIns(result, node.expr.irVal != null ? node.expr.irVal.toString() : node.expr.irPtr.toString()));
+                currentBlock.addIns(new StoreIns(result, node.expr.irVal != null ? node.expr.irVal : node.expr.irPtr));
                 node.irVal = node.expr.irVal;
                 node.irPtr = node.expr.irPtr;
             }
             case "--" -> {
                 currentBlock.addIns(new Sub(getValue(node.expr), new IntLiteral(1), result));
-                currentBlock.addIns(new StoreIns(result, node.expr.irVal != null ? node.expr.irVal.toString() : node.expr.irPtr.toString()));
+                currentBlock.addIns(new StoreIns(result, node.expr.irVal != null ? node.expr.irVal : node.expr.irPtr));
                 node.irVal = node.expr.irVal;
                 node.irPtr = node.expr.irPtr;
             }
@@ -586,7 +580,7 @@ public class IRBuilder implements ASTVisitor {
     public void visit(AssignExprNode node) {
         node.rhs.accept(this);
         node.lhs.accept(this);
-        currentBlock.addIns(new StoreIns(getValue(node.rhs), (node.lhs.irVal != null ? node.lhs.irVal.toString() : node.lhs.irPtr.toString())));
+        currentBlock.addIns(new StoreIns(getValue(node.rhs), (node.lhs.irVal != null ? node.lhs.irVal : node.lhs.irPtr)));
         node.irVal = node.lhs.irVal;
         node.irPtr = node.lhs.irPtr;
     }
@@ -639,7 +633,7 @@ public class IRBuilder implements ASTVisitor {
         node.index.accept(this);
         Entity startPtr = getValue(node.array);
         RegVar ptr = new RegVar(irPtrType, "%array_ptr." + arrayNum);
-        GetElementPtrIns get = new GetElementPtrIns(toIRType(node.type), startPtr, getValue(node.index), null, ptr.name);
+        GetElementPtrIns get = new GetElementPtrIns(toIRType(node.type), startPtr, getValue(node.index), null, ptr);
         currentBlock.addIns(get);
         node.irPtr = ptr;
         node.irVal = null;
@@ -654,7 +648,7 @@ public class IRBuilder implements ASTVisitor {
             int num = classType.getMemberNum(node.memberName);
             String name = "%" + node.irClassName.substring(7) + "." + node.memberName + "_ptr." + classType.getGEPtime(node.memberName);
             RegVar memberPtr = new RegVar(irPtrType, name);
-            GetElementPtrIns getIns = new GetElementPtrIns(classType, ptr, new IntLiteral(0), new IntLiteral(num), name);
+            GetElementPtrIns getIns = new GetElementPtrIns(classType, ptr, new IntLiteral(0), new IntLiteral(num), memberPtr);
             currentBlock.addIns(getIns);
             node.irPtr = memberPtr;
             node.irVal = null;
@@ -685,7 +679,7 @@ public class IRBuilder implements ASTVisitor {
         if (at != lengthVal.size() - 1) {
             LocalVar idx = new LocalVar("%new_idx" + dim + "." + currentFunction.newNum, irIntType);
             currentBlock.addIns(new AllocaIns(idx));
-            currentBlock.addIns(new StoreIns(new IntLiteral(0), idx.name));
+            currentBlock.addIns(new StoreIns(new IntLiteral(0), idx));
             BasicBlock nextBlock = new BasicBlock("new_for_end_" + dim + "." + currentFunction.newNum);
             BasicBlock condBlock = new BasicBlock("new_for_condition_" + dim + "." + currentFunction.newNum);
             BasicBlock bodyBlock = new BasicBlock("new_for_body_" + dim + "." + currentFunction.newNum);
@@ -697,23 +691,24 @@ public class IRBuilder implements ASTVisitor {
             currentFunction.addBlock(condBlock);
             RegVar condition = new RegVar(irBoolType, "%new_condition_" + dim + "." + currentFunction.newNum);
             RegVar idxVal = new RegVar(irIntType, "%new_idx_val" + dim + "." + currentFunction.newNum);
-            condBlock.addIns(new LoadIns(idx.name, irIntType, idxVal.name));
+            condBlock.addIns(new LoadIns(idx, irIntType, idxVal));
             currentBlock.addIns(new Slt(idxVal, lengthVal.get(at), condition));
             condBlock.exitInstruction = new BranchIns(condition, bodyBlock, nextBlock);
 
             currentBlock = bodyBlock;
             currentFunction.addBlock(bodyBlock);
             Entity nextDim = newFunction(at + 1, dim, lengthVal, baseType);
-            GetElementPtrIns getElementPtrIns = new GetElementPtrIns(irPtrType, startValue, idxVal, null, "%new_array_at_" + at + "." + currentFunction.newNum);
+            RegVar ptrResult = new RegVar(irPtrType,"%new_array_at_" + at + "." + currentFunction.newNum);
+            GetElementPtrIns getElementPtrIns = new GetElementPtrIns(irPtrType, startValue, idxVal, null, ptrResult);
             currentBlock.addIns(getElementPtrIns);
-            currentBlock.addIns(new StoreIns(nextDim, getElementPtrIns.valuePtrName));
+            currentBlock.addIns(new StoreIns(nextDim, ptrResult));
             bodyBlock.exitInstruction = new BranchIns(stepBlock);
 
             currentBlock = stepBlock;
             currentFunction.addBlock(stepBlock);
             RegVar newIdxVal = new RegVar(irIntType, "%new_idx_val_add" + dim + "." + currentFunction.newNum);
             currentBlock.addIns(new Add(idxVal, new IntLiteral(1), newIdxVal));
-            currentBlock.addIns(new StoreIns(newIdxVal, idx.name));
+            currentBlock.addIns(new StoreIns(newIdxVal, idx));
             stepBlock.exitInstruction = new BranchIns(condBlock);
 
             currentBlock = nextBlock;
@@ -722,7 +717,7 @@ public class IRBuilder implements ASTVisitor {
 //                Entity nextDim = newFunction(at + 1, dim, lengthVal, baseType);
 //                GetElementPtrIns getElementPtrIns = new GetElementPtrIns(irPtrType, startValue, new IntLiteral(i), new IntLiteral(0), "%new_array_" + (at - 1) + "_" + i + "." + currentFunction.newNum);
 //                currentBlock.addIns(getElementPtrIns);
-//                currentBlock.addIns(new StoreIns(nextDim, getElementPtrIns.value.name));
+//                currentBlock.addIns(new StoreIns(nextDim, getElementPtrIns.value));
 //            }
         }
         return startValue;

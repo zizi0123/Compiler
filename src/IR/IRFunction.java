@@ -83,6 +83,23 @@ public class IRFunction {
         pw.print("}\n");
     }
 
+    void Print() {
+        System.out.print("define " + returnType.toString() + " " + irFuncName + "(");
+        for (int i = 0; i < parameters.size(); ++i) {
+            System.out.print(parameters.get(i).type.toString() + " " + parameters.get(i).toString());
+            if (i != parameters.size() - 1) {
+                System.out.print(", ");
+            } else {
+                System.out.print(") {\n");
+            }
+        }
+        if(parameters.isEmpty()) System.out.print(") {\n");
+        for (var block : blocks) {
+            block.print();
+        }
+        System.out.print("}\n");
+    }
+
     public void accept(IRVisitor visitor) {
         visitor.visit(this);
     }

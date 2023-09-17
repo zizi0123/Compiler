@@ -7,22 +7,24 @@ import IR.Entity.variable.GlobalVar;
 import IR.Entity.variable.LocalVar;
 import IR.Entity.variable.RegVar;
 
+import java.util.HashSet;
+
 public class LoadIns extends Instruction {
     public Entity value;
-    public String ptrName;
+    public Entity ptr;
 
     public IRType type;
 
     public LoadIns(Entity target) {
         //target为localVar或globalVar
         if (target instanceof LocalVar localVar) {
-            this.ptrName = localVar.name;
+            this.ptr = localVar;
             type = localVar.type;
             int loadNum = localVar.loadNum;
             value = new RegVar(type, localVar.name + "_val." + loadNum);
             ++localVar.loadNum;
         } else if (target instanceof GlobalVar globalVar) {
-            this.ptrName = globalVar.name;
+            this.ptr = globalVar;
             type = globalVar.type;
             int loadNum = globalVar.loadNum;
             value = new RegVar(type, "%" + globalVar.name.substring(1) + "_val." + loadNum);
@@ -32,19 +34,38 @@ public class LoadIns extends Instruction {
         }
     }
 
-    public LoadIns(String ptrName, IRType type, String valueName) {  //从一个指针寄存器变量中Load信息
-        this.ptrName = ptrName;
+    public LoadIns(Entity ptrName, IRType type, RegVar value) {  //从一个指针寄存器变量中Load信息
+        this.ptr = ptrName;
         this.type = type;
-        this.value = new RegVar(type, valueName);
+        this.value = value;
     }
 
     @Override
     public String toString() {
-        return value.toString() + " = load " + type.toString() + ", ptr " + ptrName + '\n';
+        return value.toString() + " = load " + type.toString() + ", ptr " + ptr + '\n';
     }
 
     public void accept(IRVisitor visitor) {
         visitor.visit(this);
+    }
+
+
+    //opt
+    @Override
+    public HashSet<Entity> getUse() {
+        HashSet<Entity> result = new HashSet<>();
+        result.add(ptr);
+        return result;
+    }
+
+    @Override
+    public Entity getDef() {
+        return value;
+    }
+
+    @Override
+    public void replace(Entity olde, Entity newe) {
+        ptr = ptr.equals(olde) ? newe : ptr;
     }
 }
 

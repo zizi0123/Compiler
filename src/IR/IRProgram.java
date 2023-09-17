@@ -102,6 +102,44 @@ public class IRProgram {
         pw.close();
     }
 
+    public void Print() {
+        for (var irclass : classes.values()) {
+            System.out.println(irclass.toDefineString());
+        }
+        for (var globalVar : globalVars.values()) {
+            System.out.println(globalVar.name+" = global "+globalVar.type.toString()+" "+globalVar.initVal.toString());
+        }
+        for (var string : stringLiterals) {
+            System.out.println(string.name + " = private unnamed_addr constant [" + (string.val.length() + 1) + " x i8] c\"" + string.toIrVal() + "\\00\"");
+        }
+        String buildIn =
+                "declare void @print(ptr %str)\n" +
+                        "declare void @println(ptr %str)\n" +
+                        "declare void @printInt(i32 %n)\n" +
+                        "declare void @printlnInt(i32 %n)\n" +
+                        "declare ptr @getString()\n" +
+                        "declare i32 @getInt()\n" +
+                        "declare ptr @toString(i32 %n)\n" +
+                        "declare i32 @array.size(ptr %array)\n" +
+                        "declare i32 @string.length(ptr %str)\n" +
+                        "declare ptr @string.substring(ptr %str, i32 %left, i32 %right)\n" +
+                        "declare i32 @string.parseInt(ptr %str)\n" +
+                        "declare i32 @string.ord(ptr %str, i32 %pos)\n" +
+                        "declare ptr @string.add(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.eq(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.ne(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.lt(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.gt(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.ge(ptr %lhs, ptr %rhs)\n" +
+                        "declare i1 @string.le(ptr %lhs, ptr %rhs)declare ptr @malloc(i32 %size)\n" +
+                        "declare ptr @_newPtrArray(i32 %size)\n" +
+                        "declare ptr @_newIntArray(i32 %size)\n" +
+                        "declare ptr @_newBoolArray(i32 %size)\n";
+        System.out.println(buildIn);
+        for (var function : functions.values()) function.Print();
+        System.out.close();
+    }
+
     public void accept(IRVisitor visitor) {
         visitor.visit(this);
     }

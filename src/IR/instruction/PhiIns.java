@@ -2,11 +2,17 @@ package IR.instruction;
 
 import IR.BasicBlock;
 import IR.Entity.Entity;
+import IR.Entity.variable.LocalVar;
+import IR.Entity.variable.RegVar;
 import IR.IRVisitor;
 import IR.type.IRType;
-import java.util.ArrayList;
+import assembly.Instruction.Slt;
 
-public class PhiIns extends Instruction{
+import java.util.ArrayList;
+import java.util.HashSet;
+
+public class PhiIns extends Instruction {
+    public LocalVar srcVar;
     public Entity result;
     IRType type;
 
@@ -14,21 +20,58 @@ public class PhiIns extends Instruction{
 
     public ArrayList<BasicBlock> blocks = new ArrayList<>();
 
-    public PhiIns(Entity result){
+    public PhiIns(Entity result) {
         this.result = result;
         type = result.type;
     }
 
-    public void addPair(Entity value,BasicBlock block){
+    public PhiIns(LocalVar s, RegVar result) {
+        srcVar = s;
+        this.result = result;
+        type = result.type;
+
+    }
+
+    public void addPair(Entity value, BasicBlock block) {
         values.add(value);
         blocks.add(block);
     }
+
     @Override
     public String toString() {
-        return result.toString()+" = phi "+type.toString()+" [ "+values.get(0).toString()+", %"+blocks.get(0).label+" ], [ "+values.get(1).toString()+", %"+blocks.get(1).label+" ]\n";
+        StringBuilder res = new StringBuilder(result.toString() + " = phi " + type.toString());
+        for (int i = 0; i < values.size(); ++i) {
+            res.append(" [ ").append(values.get(0).toString()).append(", %").append(blocks.get(0).label).append(" ]");
+            if (i != values.size() - 1) res.append(", ");
+        }
+        return res + "\n";
     }
 
     public void accept(IRVisitor visitor) {
         visitor.visit(this);
     }
+
+
+    //opt
+    @Override
+    public HashSet<Entity> getUse() {
+        return new HashSet<>(values);
+    }
+
+    @Override
+    public Entity getDef() {
+        return result;
+    }
+
+    @Override
+    public void replace(Entity olde, Entity newe) {
+        for (int i = 0; i < values.size(); ++i) {
+            if (values.get(i).equals(olde)) {
+                values.remove(i);
+                values.add(i, newe);
+            }
+        }
+    }
+
+
 }

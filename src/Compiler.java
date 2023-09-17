@@ -1,10 +1,12 @@
 import IR.IRBuilder;
+import IR.IRProgram;
 import assembly.InsSelector;
 import assembly.Module;
 import ast.ASTBuilder;
 import ast.ProgramNode;
 import grammar.MxLexer;
 import grammar.MxParser;
+import irOpt.Mem2Reg;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import semantic.TypeChecker;
@@ -64,10 +66,12 @@ public class Compiler {
         //ir
         IRBuilder irBuilder = new IRBuilder();
         irBuilder.visit(programNode);
+        new Mem2Reg(irBuilder.irProgram).Mem2RegOpt();
+        irBuilder.irProgram.Print();
 
         //asm
-        Module module = new Module();
-        InsSelector insSelector = new InsSelector(module);
-        insSelector.visit(irBuilder.irProgram);
+//        Module module = new Module();
+//        InsSelector insSelector = new InsSelector(module);
+//        insSelector.visit(irBuilder.irProgram);
     }
 }

@@ -7,6 +7,7 @@ import IR.type.IRVoidType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 
 import static IR.type.IRTypes.irVoidType;
 
@@ -58,6 +59,28 @@ public class CallIns extends Instruction {
 
     public void accept(IRVisitor visitor) {
         visitor.visit(this);
+    }
+
+    //opt
+
+    @Override
+    public HashSet<Entity> getUse() {
+        return new HashSet<>(args);
+    }
+
+    @Override
+    public Entity getDef() {
+        return result;
+    }
+
+    @Override
+    public void replace(Entity olde, Entity newe) {
+        for(int i = 0;i<args.size();++i){
+            if(args.get(i).equals(olde)){
+                args.remove(i);
+                args.add(i,newe);
+            }
+        }
     }
 
 }

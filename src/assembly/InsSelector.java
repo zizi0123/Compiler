@@ -11,8 +11,6 @@ import IR.instruction.*;
 import assembly.Instruction.*;
 import assembly.operand.*;
 
-import java.io.File;
-
 import static IR.type.IRTypes.irBoolType;
 import static IR.type.IRTypes.irVoidType;
 import static java.lang.Math.max;
@@ -226,7 +224,7 @@ public class InsSelector implements IRVisitor {
 
     @Override
     public void visit(AllocaIns node) {
-        var stackVal = valueAllocator.getStackVal(node.varName);
+        var stackVal = valueAllocator.getStackVal(node.var.name);
         currentFunction.stack.add(stackVal);
     }
 
@@ -236,22 +234,22 @@ public class InsSelector implements IRVisitor {
         String comment = node.toString();
         int size = node.value.type.equals(irBoolType) ? 1 : 4;
         rd.size = size;
-        if (currentModule.irName2GbVal.containsKey(node.ptrName)) { //从全局变量中load
-            GlobalVal gv = currentModule.irName2GbVal.get(node.ptrName);
+        if (currentModule.irName2GbVal.containsKey(node.ptr)) { //从全局变量中load
+            GlobalVal gv = currentModule.irName2GbVal.get(node.ptr);
             if (size == 1) {
                 currentBlock.addIns(new Lb(rd, gv, comment));
             } else {
                 currentBlock.addIns(new Lw(rd, gv, comment));
             }
-        } else if (valueAllocator.irVar2Stack.containsKey(node.ptrName)) { //从局部变量中Load
-            StackVal sv = valueAllocator.irVar2Stack.get(node.ptrName);
+        } else if (valueAllocator.irVar2Stack.containsKey(node.ptr)) { //从局部变量中Load
+            StackVal sv = valueAllocator.irVar2Stack.get(node.ptr);
             if (size == 1) {
                 currentBlock.addIns(new Lb(rd, valueAllocator.getPReg("sp"), new StackOffset(sv), comment));
             } else {
                 currentBlock.addIns(new Lw(rd, valueAllocator.getPReg("sp"), new StackOffset(sv), comment));
             }
         } else { //从一个储存在寄存器中的指针中load
-            Reg rs = getReg(node.ptrName);
+            Reg rs = getReg(node.ptr);
             if (size == 1) {
                 currentBlock.addIns(new Lb(rd, rs, new Imm(0), comment));
             } else {
@@ -265,22 +263,22 @@ public class InsSelector implements IRVisitor {
         Reg rs = getReg(node.val);
         String comment = node.toString();
         int size = node.val.type.equals(irBoolType) ? 1 : 4;
-        if (currentModule.irName2GbVal.containsKey(node.ptrName)) {
-            GlobalVal gv = currentModule.irName2GbVal.get(node.ptrName);
+        if (currentModule.irName2GbVal.containsKey(node.ptr)) {
+            GlobalVal gv = currentModule.irName2GbVal.get(node.ptr);
             if (size == 1) {
                 currentBlock.addIns(new Sb(rs, gv, valueAllocator.getPReg("t6"), comment));
             } else {
                 currentBlock.addIns(new Sw(rs, gv, valueAllocator.getPReg("t6"), comment));
             }
-        } else if (valueAllocator.irVar2Stack.containsKey(node.ptrName)) {
-            StackVal sv = valueAllocator.irVar2Stack.get(node.ptrName);
+        } else if (valueAllocator.irVar2Stack.containsKey(node.ptr)) {
+            StackVal sv = valueAllocator.irVar2Stack.get(node.ptr);
             if (size == 1) {
                 currentBlock.addIns(new Sb(rs, valueAllocator.getPReg("sp"), new StackOffset(sv), comment));
             } else {
                 currentBlock.addIns(new Sw(rs, valueAllocator.getPReg("sp"), new StackOffset(sv), comment));
             }
         } else {
-            Reg rd = getReg(node.ptrName);
+            Reg rd = getReg(node.ptr);
             if (size == 1) {
                 currentBlock.addIns(new Sb(rs, rd, new Imm(0), comment));
             } else {
@@ -397,15 +395,15 @@ public class InsSelector implements IRVisitor {
     @Override
     public void visit(GetElementPtrIns node) {
         Reg ptr = getReg(node.ptrVal);
-        Reg rd = getReg(node.valuePtrName);
+        Reg rd = getReg(node.valuePtr);
         Reg idx1 = getReg(node.idx1);
         Reg tmp = valueAllocator.getNewVirtualReg();
         boolean ifShift = false;
         if (idx1 != valueAllocator.getPReg("zero")) { //idx1!=0
             ifShift = true;
             if (!node.type.equals(irBoolType)) {
-                currentBlock.addIns(new ASMarithmetic(tmp, idx1, new Imm(2), "shl"));
-                currentBlock.addIns(new ASMarithmetic(rd, ptr, tmp, "add", node.toString()));
+                currentBlock.addIns(new ASMarithmetic(idx1, idx1, new Imm(2), "shl"));
+                currentBlock.addIns(new ASMarithmetic(rd, ptr, idx1, "add", node.toString()));
             }else{
                 currentBlock.addIns(new ASMarithmetic(rd, ptr, idx1, "add", node.toString()));
             }
@@ -413,8 +411,8 @@ public class InsSelector implements IRVisitor {
             Reg idx2 = getReg(node.idx2);
             if (idx2 != valueAllocator.getPReg("zero")) { //idx2!=0
                 ifShift = true;
-                currentBlock.addIns(new ASMarithmetic(tmp, idx2, new Imm(2), "shl"));
-                currentBlock.addIns(new ASMarithmetic(rd, ptr, tmp, "add", node.toString()));
+                currentBlock.addIns(new ASMarithmetic(idx2, idx2, new Imm(2), "shl"));
+                currentBlock.addIns(new ASMarithmetic(rd, idx2, tmp, "add", node.toString()));
             }
         }
         if (!ifShift) {

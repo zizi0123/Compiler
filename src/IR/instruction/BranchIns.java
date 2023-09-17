@@ -4,6 +4,8 @@ import IR.BasicBlock;
 import IR.Entity.Entity;
 import IR.IRVisitor;
 
+import java.util.HashSet;
+
 public class BranchIns extends Instruction {
     public Entity condition; //i1
 
@@ -11,7 +13,7 @@ public class BranchIns extends Instruction {
 
     public BasicBlock falseBlock;
 
-    public IcmpIns icmpIns;
+    public IcmpIns icmpIns;//asm
 
     public BranchIns(BasicBlock jumpToBlock) {
         trueBlock = jumpToBlock;
@@ -34,6 +36,25 @@ public class BranchIns extends Instruction {
 
     public void accept(IRVisitor visitor) {
         visitor.visit(this);
+    }
+
+    //opt
+
+    @Override
+    public HashSet<Entity> getUse() {
+        HashSet<Entity> result = new HashSet<>();
+        result.add(condition);
+        return result;
+    }
+
+    @Override
+    public Entity getDef() {
+        return null;
+    }
+
+    @Override
+    public void replace(Entity olde, Entity newe) {
+        condition = condition.equals(olde) ? newe : condition;
     }
 
 }
