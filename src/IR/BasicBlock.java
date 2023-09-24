@@ -28,12 +28,19 @@ public class BasicBlock {
     }
 
     public void addIns(Instruction ins) {
-        instructions.add(ins);
+        if(ins instanceof PhiIns phiIns){
+            phis.add(phiIns);
+        }else {
+            instructions.add(ins);
+        }
     }
 
     public void print(PrintWriter pw) {
         if (instructions.isEmpty()) return;
         pw.println(label + ":");
+        for (var ins : phis) {
+            pw.print("  " + ins.toString());
+        }
         for (var ins : instructions) {
             pw.print("  " + ins.toString());
         }
