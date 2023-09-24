@@ -60,8 +60,8 @@ public class GetElementPtrIns extends Instruction {
     @Override
     public void replace(Entity olde, Entity newe) {
         ptrVal = ptrVal.equals(olde) ? newe : ptrVal;
-        idx1 = idx1.equals(olde) ? newe : ptrVal;
-        if(idx2!=null) idx2 = idx2.equals(olde) ? newe : ptrVal;
+        idx1 = idx1.equals(olde) ? newe : idx1;
+        if(idx2!=null) idx2 = idx2.equals(olde) ? newe : idx2;
     }
 
 }

@@ -27,7 +27,7 @@ public class Compiler {
     public static void main(String[] args) throws Exception {
         InputStream input = System.in;
         try {
-            compile(input);
+            compile(input, args);
         } catch (SyntaxError syntaxError) {
             System.err.println(syntaxError.message + " in line" + syntaxError.pos.getRow() + ", column" + syntaxError.pos.getCol());
             System.exit(1);
@@ -41,7 +41,7 @@ public class Compiler {
         System.exit(0);
     }
 
-    public static void compile(InputStream input) throws IOException {
+    public static void compile(InputStream input, String[] arg) throws IOException {
         MxLexer lexer = new MxLexer(CharStreams.fromStream(input));
         lexer.removeErrorListeners();
         lexer.addErrorListener(new MxErrorListener());
@@ -66,12 +66,16 @@ public class Compiler {
         //ir
         IRBuilder irBuilder = new IRBuilder();
         irBuilder.visit(programNode);
-        new Mem2Reg(irBuilder.irProgram).Mem2RegOpt();
-        irBuilder.irProgram.Print();
-
-        //asm
-//        Module module = new Module();
-//        InsSelector insSelector = new InsSelector(module);
-//        insSelector.visit(irBuilder.irProgram);
+        if (arg.length > 1 && arg[1].equals("-mem2reg")) {
+            new Mem2Reg(irBuilder.irProgram).Mem2RegOpt();
+        }
+        if (arg[0].equals("-ir")) {
+            irBuilder.irProgram.Print();
+        } else {
+            //   asm
+            Module module = new Module();
+            InsSelector insSelector = new InsSelector(module);
+            insSelector.visit(irBuilder.irProgram);
+        }
     }
 }

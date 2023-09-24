@@ -41,7 +41,7 @@ public class PhiIns extends Instruction {
     public String toString() {
         StringBuilder res = new StringBuilder(result.toString() + " = phi " + type.toString());
         for (int i = 0; i < values.size(); ++i) {
-            res.append(" [ ").append(values.get(0).toString()).append(", %").append(blocks.get(0).label).append(" ]");
+            res.append(" [ ").append(values.get(i).toString()).append(", %").append(blocks.get(i).label).append(" ]");
             if (i != values.size() - 1) res.append(", ");
         }
         return res + "\n";

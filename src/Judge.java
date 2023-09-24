@@ -10,12 +10,12 @@ public class Judge {
     public static final String YELLOW = "\u001B[33m";
 
     public static void main(String[] args) throws Exception {
-        judge();
+        judge(args);
     }
 
-    public static void judge() {
+    public static void judge(String [] args) {
         String folderPath = "testcases/sema";
-        if (traverseFolder(new File(folderPath))) {
+        if (traverseFolder(new File(folderPath),args)) {
             System.out.println(GREEN + "All tests passed!");
         } else {
             System.out.println(RED + "Some tests failed!");
@@ -23,19 +23,19 @@ public class Judge {
         System.out.print(RESET);
     }
 
-    public static boolean traverseFolder(File folder) {
+    public static boolean traverseFolder(File folder,String []args) {
         if (folder.isDirectory()) {
             boolean success = true;
             File[] files = folder.listFiles();
             if (files != null) {
                 for (File file : files) {
-                    if (!traverseFolder(file)) success = false;
+                    if (!traverseFolder(file,args)) success = false;
                 }
             }
             return success;
         } else {
             System.out.println(YELLOW + folder.getAbsolutePath().substring(folder.getAbsolutePath().indexOf("sema\\") + 5) + ": ");
-            if (semanticCheck(folder.getAbsolutePath())) {
+            if (semanticCheck(folder.getAbsolutePath(),args)) {
                 System.out.println(GREEN + "Pass!");
                 return true;
             } else {
@@ -46,7 +46,7 @@ public class Judge {
         }
     }
 
-    public static boolean semanticCheck(String fileName) {
+    public static boolean semanticCheck(String fileName,String []args) {
         boolean success = false;
         try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
             int lineNumber = 1;
@@ -64,7 +64,7 @@ public class Judge {
         }
         try {
             InputStream input = new FileInputStream(fileName);
-            Compiler.compile(input);
+            Compiler.compile(input,args);
         } catch (SyntaxError syntaxError) {
             System.err.println(syntaxError.message + "in line" + syntaxError.pos.getRow() + ", column" + syntaxError.pos.getCol());
             return !success;
