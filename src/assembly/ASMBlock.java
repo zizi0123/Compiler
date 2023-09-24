@@ -9,13 +9,16 @@ public class ASMBlock {
 
     public String comment;
 
+    int succNum;
+
     public ArrayList<ASMIns> instructions = new ArrayList<>();
 
     public ArrayList<ASMIns> exitInses = new ArrayList<>();
 
-    public ASMBlock(String n, String c) {
+    public ASMBlock(String n, String c,int num) {
         name = n;
         comment = c;
+        succNum = num;
     }
 
     public void addIns(ASMIns i) {

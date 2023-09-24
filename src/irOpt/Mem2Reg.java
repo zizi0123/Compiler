@@ -80,7 +80,7 @@ public class Mem2Reg {
             BasicBlock target = toProcess.remove(0);
             for (BasicBlock domFrontier : target.domFrontier) {
                 if (!inserted.contains(domFrontier)) {
-                    domFrontier.phis.add(new PhiIns(var, new RegVar(var.type, var.name + "_phiValIn_" + domFrontier.label)));
+                    domFrontier.phis.add(new PhiIns(var, new RegVar(var.type, var.name + "_phiValIn_" + domFrontier.label),domFrontier));
                     inserted.add(domFrontier);
                 }
                 if (!processed.contains(domFrontier)) {

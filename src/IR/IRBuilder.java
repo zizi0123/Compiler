@@ -462,7 +462,7 @@ public class IRBuilder implements ASTVisitor {
             currentFunction.addBlock(nextBlock);
             currentBlock = nextBlock;
             RegVar result = new RegVar(irBoolType, "%shortCut_result." + currentFunction.shortCutNum);
-            PhiIns phiIns = new PhiIns(result);
+            PhiIns phiIns = new PhiIns(result,currentBlock);
             phiIns.addPair(new BoolLiteral(true), trueBlock);
             phiIns.addPair(new BoolLiteral(false), falseBlock);
             node.irVal = result;
@@ -780,7 +780,7 @@ public class IRBuilder implements ASTVisitor {
         currentFunction.addBlock(nextBlock);
         if (!isVoid) {
             node.irVal = new RegVar(toIRType(node.mExpr.type), "%ternary_value." + ternaryNum);
-            PhiIns phi = new PhiIns(node.irVal);
+            PhiIns phi = new PhiIns(node.irVal,currentBlock);
             phi.addPair(value1, endBlock1);
             phi.addPair(value2, endBlock2);
             currentBlock.addIns(phi);

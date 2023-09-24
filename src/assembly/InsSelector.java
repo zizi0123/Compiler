@@ -10,6 +10,11 @@ import IR.IRVisitor;
 import IR.instruction.*;
 import assembly.Instruction.*;
 import assembly.operand.*;
+import org.antlr.v4.runtime.misc.Pair;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
 
 import static IR.type.IRTypes.irBoolType;
 import static IR.type.IRTypes.irVoidType;
@@ -22,6 +27,7 @@ public class InsSelector implements IRVisitor {
     ASMFunction currentFunction;
     ASMBlock currentBlock;
     ValueAllocator valueAllocator;
+    HashMap<String, ASMBlock> intermediateBlocks = new HashMap<>();
 
 
     public InsSelector(Module module) {
@@ -75,21 +81,23 @@ public class InsSelector implements IRVisitor {
         return valueAllocator.getPReg("zero");
     }
 
-    void toExpectReg(Entity entity, Reg target, ASMBlock block) {
+    void toExpectReg(Entity entity, Reg target, ASMBlock block, boolean inEnd) {
+        ASMIns ins;
         if (entity instanceof RegVar regVar) {
-            block.addIns(new Mv(target, valueAllocator.getAsmReg(regVar.name)));
+            ins = new Mv(target, valueAllocator.getAsmReg(regVar.name));
         } else if (entity instanceof BoolLiteral boolLiteral) {
-            Li li = new Li(target, boolLiteral.value ? 1 : 0);
-            block.addIns(li);
+            ins = new Li(target, boolLiteral.value ? 1 : 0);
         } else if (entity instanceof IntLiteral intLiteral) {
-            Li li = new Li(target, intLiteral.value);
-            block.addIns(li);
+            ins = new Li(target, intLiteral.value);
         } else if (entity instanceof StringLiteral stringLiteral) {
-            La la = new La(target, currentModule.globalStrings.get(stringLiteral.name));
-            block.addIns(la);
+            ins = new La(target, currentModule.globalStrings.get(stringLiteral.name));
         } else {
-            Mv mv = new Mv(target, valueAllocator.getPReg("zero"));
-            block.addIns(mv);
+            ins = new Mv(target, valueAllocator.getPReg("zero"));
+        }
+        if (inEnd) {
+            block.exitInses.add(0, ins);
+        } else {
+            block.addIns(ins);
         }
     }
 
@@ -118,6 +126,16 @@ public class InsSelector implements IRVisitor {
         return valueAllocator.getAsmReg(irRegName);
     }
 
+    void replaceBlock(ArrayList<ASMIns> exitInses, ASMBlock oldb, ASMBlock newb) {
+        for (var ins : exitInses) {
+            if (ins instanceof J j && j.jumpTo.equals(oldb)) {
+                j.jumpTo = newb;
+            } else if (ins instanceof Branch branch && branch.jumpTo.equals(oldb)) {
+                branch.jumpTo = newb;
+            }
+        }
+    }
+
     @Override
     public void visit(IRProgram node) {
         for (var strLiteral : node.stringLiterals) {
@@ -140,7 +158,7 @@ public class InsSelector implements IRVisitor {
 
     void functionInit(IRFunction node) {
         valueAllocator.calleeSaveTo.clear();
-        ASMBlock initBlock = new ASMBlock(".L-" + node.irFuncName.substring(1) + "-init", "init");
+        ASMBlock initBlock = new ASMBlock(".L-" + node.irFuncName.substring(1) + "-init", "init", 1);
         currentFunction.blocks.add(initBlock);
         currentFunction.initBlock = initBlock;
         if (!currentFunction.funcName.equals("main")) {
@@ -171,7 +189,7 @@ public class InsSelector implements IRVisitor {
     public void visit(IRFunction node) {
         functionInit(node);
         for (var basicBlock : node.blocks) { //symbol collect
-            ASMBlock block = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), basicBlock.label);
+            ASMBlock block = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), basicBlock.label, basicBlock.succs.size());
             currentFunction.blocks.add(block);
             currentFunction.irName2Block.put(basicBlock.label, block);
         }
@@ -183,7 +201,7 @@ public class InsSelector implements IRVisitor {
             StackOffset offset = new StackOffset(currentFunction.raStack);
             Sw raStore = new Sw(valueAllocator.getPReg("ra"), valueAllocator.getPReg("sp"), offset, "store ra\n");
             currentFunction.initBlock.addIns(raStore);
-        }else{
+        } else {
             currentFunction.stack.remove(0); //删去raStack
             currentFunction.raStack = null;
         }
@@ -217,6 +235,9 @@ public class InsSelector implements IRVisitor {
     @Override
     public void visit(BasicBlock node) {
         collectBranchCond(node);
+        for (var phi : node.phis) {
+            visit(phi);
+        }
         for (var ins : node.instructions) {
             ins.accept(this);
         }
@@ -378,7 +399,7 @@ public class InsSelector implements IRVisitor {
     public void visit(CallIns node) {
         currentFunction.maxArgNum = max(currentFunction.maxArgNum, node.args.size());
         for (int i = 0; i < 8 && i < node.args.size(); ++i) {
-            toExpectReg(node.args.get(i), valueAllocator.getPReg("a" + i), currentBlock);
+            toExpectReg(node.args.get(i), valueAllocator.getPReg("a" + i), currentBlock, false);
         }
         for (int i = 8; i < node.args.size(); ++i) {
             Sw sw = new Sw(getReg(node.args.get(i)), valueAllocator.getPReg("sp"), new Imm((i - 8) * 4), "put param\n");
@@ -404,7 +425,7 @@ public class InsSelector implements IRVisitor {
             if (!node.type.equals(irBoolType)) {
                 currentBlock.addIns(new ASMarithmetic(idx1, idx1, new Imm(2), "shl"));
                 currentBlock.addIns(new ASMarithmetic(rd, ptr, idx1, "add", node.toString()));
-            }else{
+            } else {
                 currentBlock.addIns(new ASMarithmetic(rd, ptr, idx1, "add", node.toString()));
             }
         } else if (node.idx2 != null) {
@@ -423,12 +444,12 @@ public class InsSelector implements IRVisitor {
 
     @Override
     public void visit(ReturnIns node) {
-        if(!node.type.equals(irVoidType)) {
-            toExpectReg(node.value, valueAllocator.getPReg("a0"), currentBlock);
+        if (!node.type.equals(irVoidType)) {
+            toExpectReg(node.value, valueAllocator.getPReg("a0"), currentBlock, false);
         }
         if (!currentFunction.funcName.equals("main")) {
-            for(var reg : ValueAllocator.calleeSaveRegs){
-                currentBlock.addIns(new Mv(reg,valueAllocator.calleeSaveTo.get(reg)));
+            for (var reg : ValueAllocator.calleeSaveRegs) {
+                currentBlock.addIns(new Mv(reg, valueAllocator.calleeSaveTo.get(reg)));
             }
         }
         currentBlock.exitInses.add(new Ret(currentFunction));
@@ -440,7 +461,32 @@ public class InsSelector implements IRVisitor {
         Reg rd = getReg(node.result);
         ASMBlock block1 = currentFunction.irName2Block.get(node.blocks.get(0).label);
         ASMBlock block2 = currentFunction.irName2Block.get(node.blocks.get(1).label);
-        toExpectReg(node.values.get(0), rd, block1);
-        toExpectReg(node.values.get(1), rd, block2);
+        ASMBlock myBlock = currentFunction.irName2Block.get(node.inBlock.label);
+        if (block1.succNum == 1) {
+            toExpectReg(node.values.get(0), rd, block1, true);
+        } else {
+            ASMBlock mBlock = intermediateBlocks.get(block1.name + myBlock.name);
+            if(mBlock!=null){
+                toExpectReg(node.values.get(0), rd, mBlock, false);
+            }else{
+                mBlock = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(),"intermediate block",1);
+                currentFunction.blocks.add(mBlock);
+                intermediateBlocks.put(block1.name + myBlock.name,mBlock);
+                toExpectReg(node.values.get(0), rd, mBlock, false);
+            }
+        }
+        if (block2.succNum == 1) {
+            toExpectReg(node.values.get(1), rd, block2, true);
+        } else {
+            ASMBlock mBlock = intermediateBlocks.get(block2.name + myBlock.name);
+            if(mBlock!=null){
+                toExpectReg(node.values.get(1), rd, mBlock, false);
+            }else{
+                mBlock = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(),"intermediate block",1);
+                currentFunction.blocks.add(mBlock);
+                intermediateBlocks.put(block2.name + myBlock.name,mBlock);
+                toExpectReg(node.values.get(1), rd, mBlock, false);
+            }
+        }
     }
 }

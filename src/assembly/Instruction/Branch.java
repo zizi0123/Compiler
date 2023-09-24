@@ -7,7 +7,7 @@ import assembly.operand.Reg;
 public class Branch extends ASMIns{
     public Reg rs1;
     public Reg rs2;
-    ASMBlock jumpTo;
+    public ASMBlock jumpTo;
     String operator;
 
     public Branch(Reg r1, Reg r2, ASMBlock j, String o){

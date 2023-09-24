@@ -6,6 +6,7 @@ import IR.Entity.variable.LocalVar;
 import IR.Entity.variable.RegVar;
 import IR.IRVisitor;
 import IR.type.IRType;
+import assembly.ASMBlock;
 import assembly.Instruction.Slt;
 
 import java.util.ArrayList;
@@ -16,20 +17,23 @@ public class PhiIns extends Instruction {
     public Entity result;
     IRType type;
 
+    public BasicBlock inBlock;
+
     public ArrayList<Entity> values = new ArrayList<>();
 
     public ArrayList<BasicBlock> blocks = new ArrayList<>();
 
-    public PhiIns(Entity result) {
+    public PhiIns(Entity result, BasicBlock inBlock) {
         this.result = result;
         type = result.type;
+        this.inBlock = inBlock;
     }
 
-    public PhiIns(LocalVar s, RegVar result) {
+    public PhiIns(LocalVar s, RegVar result, BasicBlock inBlock) {
         srcVar = s;
         this.result = result;
         type = result.type;
-
+        this.inBlock = inBlock;
     }
 
     public void addPair(Entity value, BasicBlock block) {
