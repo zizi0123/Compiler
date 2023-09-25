@@ -66,12 +66,12 @@ public class Compiler {
         //ir
         IRBuilder irBuilder = new IRBuilder();
         irBuilder.visit(programNode);
-        if (arg.length > 1 && arg[1].equals("-mem2reg")) {
+//        if (arg.length > 1 && arg[1].equals("-mem2reg")) {
             new Mem2Reg(irBuilder.irProgram).Mem2RegOpt();
-        }
+//        }
         if (arg[0].equals("-ir")) {
             irBuilder.irProgram.Print();
-        } else {
+        } else if(arg[0].equals("-S")){
             //   asm
             Module module = new Module();
             InsSelector insSelector = new InsSelector(module);
