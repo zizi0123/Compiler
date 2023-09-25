@@ -72,14 +72,11 @@ public class NaiveRegAllocator implements ASMVisitor {
 
     @Override
     public void visit(Module node) {
-        for (var func : node.functions) {
-            currentFunction = func;
-            visit(func);
-        }
     }
 
     @Override
     public void visit(ASMFunction node) {
+        currentFunction = node;
         for (var block : node.blocks) {
             currentBlock = block;
             visit(block);

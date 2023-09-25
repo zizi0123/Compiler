@@ -1,8 +1,8 @@
 package assembly;
 
+import IR.Entity.variable.GlobalVar;
 import assembly.operand.GlobalString;
 import assembly.operand.GlobalVal;
-import assembly.operand.StackVal;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,13 +13,13 @@ public class Module {
 
     public ArrayList<ASMFunction> functions = new ArrayList<>();
 
-    public HashMap<String, GlobalVal> irName2GbVal = new HashMap<>();
+    public HashMap<GlobalVar, GlobalVal> gbIr2Asm = new HashMap<>();
 
     public void print() {
         for (var func : functions) {
             func.print();
         }
-        for (var gv : irName2GbVal.values()) {
+        for (var gv : gbIr2Asm.values()) {
             gv.print();
         }
         for (var gs : globalStrings.values()) {
