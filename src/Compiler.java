@@ -1,25 +1,22 @@
-import IR.IRBuilder;
-import IR.IRProgram;
-import assembly.InsSelector;
-import assembly.Module;
-import ast.ASTBuilder;
-import ast.ProgramNode;
-import grammar.MxLexer;
-import grammar.MxParser;
-import irOpt.Mem2Reg;
+import backend.IR.IRBuilder;
+import backend.assembly.InsSelector;
+import backend.assembly.Module;
+import frontend.ast.ASTBuilder;
+import frontend.ast.ProgramNode;
+import frontend.grammar.MxLexer;
+import frontend.grammar.MxParser;
+import Opt.irOptimizer;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import semantic.TypeChecker;
-import semantic.SymbolCollector;
-import ast.util.MxErrorListener;
-import ast.util.error.SemanticError;
-import ast.util.error.SyntaxError;
-import ast.util.scope.GlobalScope;
+import frontend.semantic.TypeChecker;
+import frontend.semantic.SymbolCollector;
+import frontend.ast.util.MxErrorListener;
+import frontend.ast.util.error.SemanticError;
+import frontend.ast.util.error.SyntaxError;
+import frontend.ast.util.scope.GlobalScope;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
 
 // Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
 // then press Enter. You can now see whitespace characters in your code.
@@ -66,9 +63,11 @@ public class Compiler {
         //ir
         IRBuilder irBuilder = new IRBuilder();
         irBuilder.visit(programNode);
-//        if (arg.length > 1 && arg[1].equals("-mem2reg")) {
-            new Mem2Reg(irBuilder.irProgram).Mem2RegOpt();
-//        }
+
+        //irOpt
+        irOptimizer optimizer = new irOptimizer(irBuilder.irProgram);
+        optimizer.work();
+
         if (arg[0].equals("-ir")) {
             irBuilder.irProgram.Print();
         } else if(arg[0].equals("-S")){

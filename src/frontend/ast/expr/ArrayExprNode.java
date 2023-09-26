@@ -1,0 +1,23 @@
+package frontend.ast.expr;
+
+import frontend.ast.ASTVisitor;
+import frontend.ast.util.position.Position;
+
+public class ArrayExprNode extends ExprNode{
+    public ExprNode array;
+    public ExprNode index;
+
+    public ArrayExprNode(Position pos){
+        super(pos);
+    }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
+
+    @Override
+    public boolean isLeftValue() {
+        return true;
+    }
+}
