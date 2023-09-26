@@ -10,6 +10,7 @@ public class irOptimizer {
     }
 
     public void work(){
+        new Global2Local(program).work();
         new CFGBuilder(program).build();
         new DominatorTreeBuilder(program).build();
         new Mem2Reg(program).Mem2RegOpt();

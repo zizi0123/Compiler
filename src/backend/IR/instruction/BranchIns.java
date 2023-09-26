@@ -54,7 +54,9 @@ public class BranchIns extends Instruction {
 
     @Override
     public void replace(Entity olde, Entity newe) {
-        condition = condition.equals(olde) ? newe : condition;
+        if(condition!=null) {
+            condition = condition.equals(olde) ? newe : condition;
+        }
     }
 
 }

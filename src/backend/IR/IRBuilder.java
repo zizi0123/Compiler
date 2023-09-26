@@ -201,8 +201,10 @@ public class IRBuilder implements ASTVisitor {
                 if (node.expr instanceof ConstExprNode) {
                     node.expr.accept(this);
                     var.initVal = getValue(node.expr);
+                    var.InitFunc = false;
                 } else {
                     var.initVal = defaultVal(var.type);
+                    var.InitFunc = true;
                     backend.IR.IRFunction tmpFunc = currentFunction;
                     BasicBlock tmpBlock = currentBlock;
                     currentFunction = irProgram.initFunction;
