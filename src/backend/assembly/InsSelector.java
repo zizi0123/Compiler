@@ -233,7 +233,7 @@ public class InsSelector implements IRVisitor {
 
     @Override
     public void visit(BasicBlock node) {
-        collectBranchCond(node);
+        collectBranchCond(node); //判断一个branch指令是否有对应的i1表达式
         for (var phi : node.phis) {
             visit(phi);
         }
@@ -343,9 +343,9 @@ public class InsSelector implements IRVisitor {
         ASMarithmetic ins;
         Val v2;
         if (node.operator.equals("add") || node.operator.equals("sub") || node.operator.equals("and") || node.operator.equals("ashr") || node.operator.equals("or") || node.operator.equals("shl") || node.operator.equals("xor")) {
-            v2 = getVal(node.operand2);
+            v2 = getVal(node.operand2); //可以使用立即数运算
         } else {
-            v2 = getReg(node.operand2);
+            v2 = getReg(node.operand2);  //必须在寄存器上运算
         }
         if (v2 instanceof Imm imm) {
             ins = new ASMarithmetic(rd, rs1, imm, node.operator);
