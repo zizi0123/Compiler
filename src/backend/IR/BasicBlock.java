@@ -36,7 +36,6 @@ public class BasicBlock {
     }
 
     public void print(PrintWriter pw) {
-        if (instructions.isEmpty()) return;
         pw.println(label + ":");
         for (var ins : phis) {
             pw.print("  " + ins.toString());
@@ -47,7 +46,6 @@ public class BasicBlock {
     }
 
     public void print() {
-        if (instructions.isEmpty() && phis.isEmpty()) return;
         System.out.println(label + ":");
         for (var phi : phis) {
             System.out.print("  " + phi.toString());

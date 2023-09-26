@@ -124,11 +124,7 @@ public class IRBuilder implements ASTVisitor {
     public void visit(FuncDefNode node) {
         currentFunction = irProgram.functions.get(node.irFuncName);
         currentBlock = currentFunction.entryBlock;
-        if (node.funcName.equals("main")) {
-            currentBlock.exitInstruction = new ReturnIns(new IntLiteral(0));
-        } else if (node.returnType.isVoid) {
-            currentBlock.exitInstruction = new ReturnIns(new voidLiteral());
-        }
+        currentBlock.exitInstruction = new ReturnIns(defaultVal(toIRType(node.returnType)));
         if (!node.functionParameterList.isEmpty()) {
             visit(node.functionParameterList);
         }
