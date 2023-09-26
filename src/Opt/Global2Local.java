@@ -54,8 +54,8 @@ public class Global2Local {
                 }
                 if (add) { //in >=2 func
                     newGV.put(gv.name, gv);
-                } else {
-                    if (inFunc != null && (inFunc == program.initFunction || inFunc.irFuncName.equals("@main"))) {//in 1 func ,and func is called only once
+                } else if (inFunc != null) {//in 1 func ,
+                    if (inFunc == program.initFunction || inFunc.irFuncName.equals("@main")) {//func is called only once
                         LocalVar lv = new LocalVar("%gv." + gv.name.substring(1), gv.type);
                         inFunc.localVars.put(lv.name, lv);
                         inFunc.entryBlock.instructions.add(0, new AllocaIns(lv));
@@ -72,6 +72,8 @@ public class Global2Local {
                                 }
                             }
                         }
+                    } else {
+                        newGV.put(gv.name, gv);
                     }
                 }
             }
