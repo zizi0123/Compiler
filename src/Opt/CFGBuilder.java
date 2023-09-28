@@ -1,9 +1,9 @@
 package Opt;
 
-import backend.IR.BasicBlock;
-import backend.IR.IRFunction;
-import backend.IR.IRProgram;
-import backend.IR.instruction.BranchIns;
+import IR.BasicBlock;
+import IR.IRFunction;
+import IR.IRProgram;
+import IR.instruction.BranchIns;
 
 public class CFGBuilder {
     IRProgram program;

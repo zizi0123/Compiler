@@ -1,11 +1,11 @@
 package Opt;
 
-import backend.IR.Entity.variable.GlobalVar;
-import backend.IR.Entity.variable.LocalVar;
-import backend.IR.IRFunction;
-import backend.IR.IRProgram;
-import backend.IR.instruction.AllocaIns;
-import backend.IR.instruction.StoreIns;
+import IR.Entity.variable.GlobalVar;
+import IR.Entity.variable.LocalVar;
+import IR.IRFunction;
+import IR.IRProgram;
+import IR.instruction.AllocaIns;
+import IR.instruction.StoreIns;
 
 import java.util.HashMap;
 

@@ -1,11 +1,11 @@
 package Opt;
 
-import backend.IR.BasicBlock;
-import backend.IR.Entity.Entity;
-import backend.IR.Entity.variable.LocalVar;
-import backend.IR.Entity.variable.RegVar;
-import backend.IR.IRProgram;
-import backend.IR.instruction.*;
+import IR.BasicBlock;
+import IR.Entity.Entity;
+import IR.Entity.variable.LocalVar;
+import IR.Entity.variable.RegVar;
+import IR.IRProgram;
+import IR.instruction.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;

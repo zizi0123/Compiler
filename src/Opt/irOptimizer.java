@@ -1,6 +1,6 @@
 package Opt;
 
-import backend.IR.IRProgram;
+import IR.IRProgram;
 
 public class irOptimizer {
     IRProgram program;

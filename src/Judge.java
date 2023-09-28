@@ -1,5 +1,5 @@
-import frontend.ast.util.error.SemanticError;
-import frontend.ast.util.error.SyntaxError;
+import ast.util.error.SemanticError;
+import ast.util.error.SyntaxError;
 
 import java.io.*;
 

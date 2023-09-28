@@ -1,15 +1,15 @@
 package frontend.semantic;
 
-import frontend.ast.*;
-import frontend.ast.def.ClassDefNode;
-import frontend.ast.def.FuncDefNode;
-import frontend.ast.def.VarDefNode;
-import frontend.ast.expr.*;
-import frontend.ast.stmt.*;
-import frontend.ast.util.error.SemanticError;
-import frontend.ast.util.scope.GlobalScope;
-import frontend.ast.util.scope.Scope;
-import frontend.ast.util.type.ASTType;
+import ast.*;
+import ast.def.ClassDefNode;
+import ast.def.FuncDefNode;
+import ast.def.VarDefNode;
+import ast.expr.*;
+import ast.stmt.*;
+import ast.util.error.SemanticError;
+import ast.util.scope.GlobalScope;
+import ast.util.scope.Scope;
+import ast.util.type.ASTType;
 
 import java.util.Objects;
 

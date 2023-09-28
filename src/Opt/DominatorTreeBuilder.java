@@ -1,8 +1,8 @@
 package Opt;
 
-import backend.IR.BasicBlock;
-import backend.IR.IRFunction;
-import backend.IR.IRProgram;
+import IR.BasicBlock;
+import IR.IRFunction;
+import IR.IRProgram;
 
 import java.util.HashSet;
 import java.util.LinkedList;
