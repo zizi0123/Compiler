@@ -461,9 +461,6 @@ public class RegAllocater {
 
     void replaceRegs() {
         for (var block : function.blocks) {
-            if (!block.exitInses.isEmpty()) {
-                block.instructions.addAll(block.exitInses);
-            }
             for (var ins : block.instructions) {
                 for (var use : ins.getUse()) {
                     ins.replace(use, color.get(use));
@@ -473,8 +470,33 @@ public class RegAllocater {
                     ins.replace(def, color.get(def));
                 }
             }
+            var inses = new ArrayList<>(block.instructions);
+            block.instructions.clear();
+            for(var ins:inses){
+                if(!(ins instanceof Mv mv && (mv.rd == mv.rs))){
+                    block.instructions.add(ins);
+                }
+            }
+            for (var ins : block.exitInses) {
+                for (var use : ins.getUse()) {
+                    ins.replace(use, color.get(use));
+                }
+                var def = ins.getDef();
+                if (def != null) {
+                    ins.replace(def, color.get(def));
+                }
+            }
+            inses = new ArrayList<>(block.exitInses);
+            block.exitInses.clear();
+            for(var ins:inses){
+                if(!(ins instanceof Mv mv && (mv.rd == mv.rs))){
+                    block.exitInses.add(ins);
+                }
+            }
         }
     }
+
+
 
 
 }
