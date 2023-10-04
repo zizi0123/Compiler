@@ -6,10 +6,11 @@ import assembly.operand.Reg;
 
 import java.util.HashSet;
 
-public class La extends ASMIns{
+public class La extends ASMIns {
     public Reg rd;
     GlobalString gbstring;
-    public La(Reg r, GlobalString s){
+
+    public La(Reg r, GlobalString s) {
         rd = r;
         gbstring = s;
         rd.size = 4;
@@ -17,7 +18,7 @@ public class La extends ASMIns{
 
     @Override
     public String toString() {
-        return "la  "+rd.toString()+", "+ gbstring +'\n';
+        return "la  " + rd.toString() + ", " + gbstring + '\n';
     }
 
     @Override
@@ -34,6 +35,11 @@ public class La extends ASMIns{
     @Override
     public Reg getDef() {
         return rd;
+    }
+
+    @Override
+    public void replace(Reg olde, Reg newe) {
+        rd = (rd == olde) ? newe : rd;
     }
 
 

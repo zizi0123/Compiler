@@ -1,5 +1,6 @@
 package assembly.Instruction;
 
+import IR.Entity.Entity;
 import assembly.ASMVisitor;
 import assembly.operand.*;
 
@@ -107,5 +108,14 @@ public class ASMarithmetic extends ASMIns {
     @Override
     public Reg getDef() {
         return rd;
+    }
+
+    @Override
+    public void replace(Reg olde, Reg newe) {
+        rd = (rd == olde) ? newe : rd;
+        rs1 = (rs1 == olde) ? newe : rs1;
+        if (rs2 != null) {
+            rs2 = (rs2 == olde) ? newe : rs2;
+        }
     }
 }

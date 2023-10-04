@@ -41,9 +41,9 @@ public class IRFunction {
         this.irFuncName = funcName;
         this.isClassMethod = isClassMethod;
         this.returnType = returnType;
-        entryBlock = new BasicBlock("entry");
+        entryBlock = new BasicBlock("entry", 0);
         blocks.add(entryBlock);
-        if(returnType.equals(irVoidType)){
+        if (returnType.equals(irVoidType)) {
             entryBlock.exitInstruction = new ReturnIns(new voidLiteral());
         }
     }
@@ -76,7 +76,7 @@ public class IRFunction {
                 pw.print(") {\n");
             }
         }
-        if(parameters.isEmpty()) pw.print(") {\n");
+        if (parameters.isEmpty()) pw.print(") {\n");
         for (var block : blocks) {
             block.print(pw);
         }
@@ -93,7 +93,7 @@ public class IRFunction {
                 System.out.print(") {\n");
             }
         }
-        if(parameters.isEmpty()) System.out.print(") {\n");
+        if (parameters.isEmpty()) System.out.print(") {\n");
         for (var block : blocks) {
             block.print();
         }

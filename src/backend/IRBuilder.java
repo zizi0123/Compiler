@@ -100,7 +100,7 @@ public class IRBuilder implements ASTVisitor {
     }
 
     @Override
-    public void visit(ProgramNode node)  {
+    public void visit(ProgramNode node) {
         IRSymbolCollect(node); //todo check是否有必要
         for (var def : node.defNodes) {
             if (def instanceof FuncDefNode) {
@@ -252,15 +252,15 @@ public class IRBuilder implements ASTVisitor {
         node.condition.accept(this);
         Entity condVal = getValue(node.condition);
         BasicBlock tmpBlock = currentBlock;
-        BasicBlock nextBlock = new BasicBlock("if_end." + ifStmtNum);
+        BasicBlock nextBlock = new BasicBlock("if_end." + ifStmtNum, currentBlock.loopDepth);
         nextBlock.exitInstruction = currentBlock.exitInstruction;
-        BasicBlock trueBlock = new BasicBlock("if_true." + ifStmtNum);
+        BasicBlock trueBlock = new BasicBlock("if_true." + ifStmtNum, currentBlock.loopDepth);
         trueBlock.exitInstruction = new BranchIns(nextBlock);
         currentFunction.addBlock(trueBlock);
         currentBlock = trueBlock;
         node.trueStmts.accept(this);
         if (node.falseStmts != null) {
-            BasicBlock falseBlock = new BasicBlock("if_false." + ifStmtNum);
+            BasicBlock falseBlock = new BasicBlock("if_false." + ifStmtNum, currentBlock.loopDepth);
             falseBlock.exitInstruction = new BranchIns(nextBlock);
             currentFunction.addBlock(falseBlock);
             currentBlock = falseBlock;
@@ -278,9 +278,9 @@ public class IRBuilder implements ASTVisitor {
         int whileStmtNum = ++currentFunction.whileStmtNum;
         node.condition.accept(this);
         BasicBlock tmpBlock = currentBlock;
-        BasicBlock nextBlock = new BasicBlock("while_end." + whileStmtNum);
-        BasicBlock condBlock = new BasicBlock("while_condition." + whileStmtNum);
-        BasicBlock bodyBlock = new BasicBlock("while_body." + whileStmtNum);
+        BasicBlock nextBlock = new BasicBlock("while_end." + whileStmtNum, currentBlock.loopDepth);
+        BasicBlock condBlock = new BasicBlock("while_condition." + whileStmtNum, currentBlock.loopDepth + 1);
+        BasicBlock bodyBlock = new BasicBlock("while_body." + whileStmtNum, currentBlock.loopDepth + 1);
         BasicBlock lastContinue = continueToBlock;
         BasicBlock lastBreak = breakToBlock;
         breakToBlock = nextBlock;
@@ -312,10 +312,10 @@ public class IRBuilder implements ASTVisitor {
             node.initExpr.accept(this);
         }
         BasicBlock tmpBlock = currentBlock;
-        BasicBlock nextBlock = new BasicBlock("for_end." + forStmtNum);
-        BasicBlock condBlock = new BasicBlock("for_condition." + forStmtNum);
-        BasicBlock bodyBlock = new BasicBlock("for_body." + forStmtNum);
-        BasicBlock stepBlock = new BasicBlock("for_step." + forStmtNum);
+        BasicBlock nextBlock = new BasicBlock("for_end." + forStmtNum, currentBlock.loopDepth);
+        BasicBlock condBlock = new BasicBlock("for_condition." + forStmtNum, currentBlock.loopDepth + 1);
+        BasicBlock bodyBlock = new BasicBlock("for_body." + forStmtNum, currentBlock.loopDepth + 1);
+        BasicBlock stepBlock = new BasicBlock("for_step." + forStmtNum, currentBlock.loopDepth + 1);
         BasicBlock lastContinue = continueToBlock;
         BasicBlock lastBreak = breakToBlock;
         continueToBlock = stepBlock;
@@ -436,10 +436,10 @@ public class IRBuilder implements ASTVisitor {
         node.lhs.accept(this);
         if (node.op.equals("&&") || node.op.equals("||")) {     //shortcut
             ++currentFunction.shortCutNum;
-            BasicBlock nextBlock = new BasicBlock("shortCut_next." + currentFunction.shortCutNum);
-            BasicBlock rhsBlock = new BasicBlock("shortCut_rhs." + currentFunction.shortCutNum);
-            BasicBlock trueBlock = new BasicBlock("shortCut_true." + currentFunction.shortCutNum);
-            BasicBlock falseBlock = new BasicBlock("shortCut_false." + currentFunction.shortCutNum);
+            BasicBlock nextBlock = new BasicBlock("shortCut_next." + currentFunction.shortCutNum, currentBlock.loopDepth);
+            BasicBlock rhsBlock = new BasicBlock("shortCut_rhs." + currentFunction.shortCutNum, currentBlock.loopDepth);
+            BasicBlock trueBlock = new BasicBlock("shortCut_true." + currentFunction.shortCutNum, currentBlock.loopDepth);
+            BasicBlock falseBlock = new BasicBlock("shortCut_false." + currentFunction.shortCutNum, currentBlock.loopDepth);
             nextBlock.exitInstruction = currentBlock.exitInstruction;
             if (node.op.equals("&&")) {
                 currentBlock.exitInstruction = new BranchIns(getValue(node.lhs), rhsBlock, falseBlock);
@@ -461,7 +461,7 @@ public class IRBuilder implements ASTVisitor {
             currentFunction.addBlock(nextBlock);
             currentBlock = nextBlock;
             RegVar result = new RegVar(irBoolType, "%shortCut_result." + currentFunction.shortCutNum);
-            PhiIns phiIns = new PhiIns(result,currentBlock);
+            PhiIns phiIns = new PhiIns(result, currentBlock);
             phiIns.addPair(new BoolLiteral(true), trueBlock);
             phiIns.addPair(new BoolLiteral(false), falseBlock);
             node.irVal = result;
@@ -679,10 +679,10 @@ public class IRBuilder implements ASTVisitor {
             LocalVar idx = new LocalVar("%new_idx" + dim + "." + currentFunction.newNum, irIntType);
             currentBlock.addIns(new AllocaIns(idx));
             currentBlock.addIns(new StoreIns(new IntLiteral(0), idx));
-            BasicBlock nextBlock = new BasicBlock("new_for_end_" + dim + "." + currentFunction.newNum);
-            BasicBlock condBlock = new BasicBlock("new_for_condition_" + dim + "." + currentFunction.newNum);
-            BasicBlock bodyBlock = new BasicBlock("new_for_body_" + dim + "." + currentFunction.newNum);
-            BasicBlock stepBlock = new BasicBlock("new_for_step_" + dim + "." + currentFunction.newNum);
+            BasicBlock nextBlock = new BasicBlock("new_for_end_" + dim + "." + currentFunction.newNum, currentBlock.loopDepth);
+            BasicBlock condBlock = new BasicBlock("new_for_condition_" + dim + "." + currentFunction.newNum, currentBlock.loopDepth + 1);
+            BasicBlock bodyBlock = new BasicBlock("new_for_body_" + dim + "." + currentFunction.newNum, currentBlock.loopDepth + 1);
+            BasicBlock stepBlock = new BasicBlock("new_for_step_" + dim + "." + currentFunction.newNum, currentBlock.loopDepth + 1);
             nextBlock.exitInstruction = currentBlock.exitInstruction;
             currentBlock.exitInstruction = new BranchIns(condBlock);
 
@@ -697,7 +697,7 @@ public class IRBuilder implements ASTVisitor {
             currentBlock = bodyBlock;
             currentFunction.addBlock(bodyBlock);
             Entity nextDim = newFunction(at + 1, dim, lengthVal, baseType);
-            RegVar ptrResult = new RegVar(irPtrType,"%new_array_at_" + at + "." + currentFunction.newNum);
+            RegVar ptrResult = new RegVar(irPtrType, "%new_array_at_" + at + "." + currentFunction.newNum);
             GetElementPtrIns getElementPtrIns = new GetElementPtrIns(irPtrType, startValue, idxVal, null, ptrResult);
             currentBlock.addIns(getElementPtrIns);
             currentBlock.addIns(new StoreIns(nextDim, ptrResult));
@@ -731,7 +731,7 @@ public class IRBuilder implements ASTVisitor {
             int classSize = (classType.bitSize);
             currentBlock.addIns(new CallIns("@malloc", node.irVal, new IntLiteral(classSize)));
             if (classType.constructor != null) {
-                currentBlock.addIns(new CallIns(irVoidType, classType.constructor.irFuncName, null,node.irVal));
+                currentBlock.addIns(new CallIns(irVoidType, classType.constructor.irFuncName, null, node.irVal));
             }
         } else {
             if (node.lengths.isEmpty()) {
@@ -754,9 +754,9 @@ public class IRBuilder implements ASTVisitor {
         Entity value1 = null, value2 = null;
         int ternaryNum = ++currentFunction.ternaryNum;
         node.lExpr.accept(this);
-        BasicBlock nextBlock = new BasicBlock("ternary_end." + ternaryNum);
-        BasicBlock Block1 = new BasicBlock("ternary_first." + ternaryNum);
-        BasicBlock Block2 = new BasicBlock("ternary_second." + ternaryNum);
+        BasicBlock nextBlock = new BasicBlock("ternary_end." + ternaryNum, currentBlock.loopDepth);
+        BasicBlock Block1 = new BasicBlock("ternary_first." + ternaryNum, currentBlock.loopDepth);
+        BasicBlock Block2 = new BasicBlock("ternary_second." + ternaryNum, currentBlock.loopDepth);
         nextBlock.exitInstruction = currentBlock.exitInstruction;
         currentBlock.exitInstruction = new BranchIns(getValue(node.lExpr), Block1, Block2);
         currentBlock = Block1;
@@ -779,7 +779,7 @@ public class IRBuilder implements ASTVisitor {
         currentFunction.addBlock(nextBlock);
         if (!isVoid) {
             node.irVal = new RegVar(toIRType(node.mExpr.type), "%ternary_value." + ternaryNum);
-            PhiIns phi = new PhiIns(node.irVal,currentBlock);
+            PhiIns phi = new PhiIns(node.irVal, currentBlock);
             phi.addPair(value1, endBlock1);
             phi.addPair(value2, endBlock2);
             currentBlock.addIns(phi);

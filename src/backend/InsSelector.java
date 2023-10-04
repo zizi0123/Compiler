@@ -12,6 +12,7 @@ import assembly.*;
 import assembly.Instruction.*;
 import assembly.Module;
 import assembly.operand.*;
+import backend.regAllocate.RegAllocater;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,13 +28,13 @@ public class InsSelector implements IRVisitor {
     Module currentModule;
     ASMFunction currentFunction;
     ASMBlock currentBlock;
-    ValueAllocator valueAllocator;
+    RegManager regManager;
     HashMap<String, ASMBlock> intermediateBlocks = new HashMap<>();
 
 
     public InsSelector(Module module) {
         this.currentModule = module;
-        valueAllocator = new ValueAllocator();
+        regManager = new RegManager();
     }
 
     void getOffset(ASMFunction func) { //确定栈中每个元素的位置
@@ -60,32 +61,32 @@ public class InsSelector implements IRVisitor {
 
     Reg getReg(Entity entity) {
         if (entity instanceof RegVar regVar) {
-            return valueAllocator.getAsmReg(regVar.name);
+            return regManager.getAsmReg(regVar.name);
         }
         if (entity instanceof BoolLiteral boolLiteral) {
-            if (!boolLiteral.value) return valueAllocator.getPReg("zero");
-            Li li = new Li(valueAllocator.getNewVirtualReg(), 1);
+            if (!boolLiteral.value) return regManager.getPReg("zero");
+            Li li = new Li(regManager.getNewVirtualReg(), 1);
             currentBlock.addIns(li);
             return li.rd;
         }
         if (entity instanceof IntLiteral intLiteral) {
-            if (intLiteral.value == 0) return valueAllocator.getPReg("zero");
-            Li li = new Li(valueAllocator.getNewVirtualReg(), intLiteral.value);
+            if (intLiteral.value == 0) return regManager.getPReg("zero");
+            Li li = new Li(regManager.getNewVirtualReg(), intLiteral.value);
             currentBlock.addIns(li);
             return li.rd;
         }
         if (entity instanceof StringLiteral stringLiteral) {
-            La la = new La(valueAllocator.getNewVirtualReg(), currentModule.globalStrings.get(stringLiteral.name));
+            La la = new La(regManager.getNewVirtualReg(), currentModule.globalStrings.get(stringLiteral.name));
             currentBlock.addIns(la);
             return la.rd;
         }
-        return valueAllocator.getPReg("zero");
+        return regManager.getPReg("zero");
     }
 
     void toExpectReg(Entity entity, Reg target, ASMBlock block, boolean inEnd) {
         ASMIns ins;
         if (entity instanceof RegVar regVar) {
-            ins = new Mv(target, valueAllocator.getAsmReg(regVar.name));
+            ins = new Mv(target, regManager.getAsmReg(regVar.name));
         } else if (entity instanceof BoolLiteral boolLiteral) {
             ins = new Li(target, boolLiteral.value ? 1 : 0);
         } else if (entity instanceof IntLiteral intLiteral) {
@@ -93,7 +94,7 @@ public class InsSelector implements IRVisitor {
         } else if (entity instanceof StringLiteral stringLiteral) {
             ins = new La(target, currentModule.globalStrings.get(stringLiteral.name));
         } else {
-            ins = new Mv(target, valueAllocator.getPReg("zero"));
+            ins = new Mv(target, regManager.getPReg("zero"));
         }
         if (inEnd) {
             block.exitInses.add(0, ins);
@@ -107,16 +108,16 @@ public class InsSelector implements IRVisitor {
             if (intLiteral.value != 0) {
                 return new Imm(intLiteral);
             } else {
-                return valueAllocator.getPReg("zero");
+                return regManager.getPReg("zero");
             }
         } else if (entity instanceof BoolLiteral boolLiteral) {
             if (!boolLiteral.value) {
-                return valueAllocator.getPReg("zero");
+                return regManager.getPReg("zero");
             } else {
                 return new Imm(1);
             }
         } else if (entity instanceof NullLiteral) {
-            return valueAllocator.getPReg("zero");
+            return regManager.getPReg("zero");
         } else {
             return getReg(entity);
         }
@@ -124,7 +125,7 @@ public class InsSelector implements IRVisitor {
 
 
     Reg getReg(String irRegName) {
-        return valueAllocator.getAsmReg(irRegName);
+        return regManager.getAsmReg(irRegName);
     }
 
     void replaceBlock(ArrayList<ASMIns> exitInses, ASMBlock oldb, ASMBlock newb) {
@@ -158,48 +159,48 @@ public class InsSelector implements IRVisitor {
     }
 
     void functionInit(IRFunction node) {
-        valueAllocator.calleeSaveTo.clear();
-        currentFunction.initBlock = new ASMBlock(".L-" + node.irFuncName.substring(1) + "-init", "init",1);
+        regManager.calleeSaveTo.clear();
+        currentFunction.initBlock = new ASMBlock(".L-" + node.irFuncName.substring(1) + "-init", "init", 1, 0);
         currentFunction.blocks.add(currentFunction.initBlock);
         if (!currentFunction.funcName.equals("main")) {
-            for (var reg : ValueAllocator.calleeSaveRegs) {
-                VirtualReg vReg = valueAllocator.getNewVirtualReg();
-                valueAllocator.calleeSaveTo.put(reg, vReg);
+            for (var reg : RegManager.calleeSaveRegs) {
+                VirtualReg vReg = regManager.getNewVirtualReg();
+                regManager.calleeSaveTo.put(reg, vReg);
                 var mv = new Mv(vReg, reg);
                 currentFunction.initBlock.addIns(mv);
             }
         }
         for (int i = 0; i < 8 && i < node.parameters.size(); ++i) {
             var paramVReg = getReg(node.parameters.get(i).name); //储存第i个参数的虚拟寄存器
-            var paramPReg = valueAllocator.getPReg("a" + i);
+            var paramPReg = regManager.getPReg("a" + i);
             currentFunction.initBlock.addIns(new Mv(paramVReg, paramPReg));
         }
         for (int i = 8; i < node.parameters.size(); ++i) {
             var paramVReg = getReg(node.parameters.get(i).name);
             var stackParam = new StackVal();
             currentFunction.params.add(stackParam);
-            Lw lw = new Lw(paramVReg, valueAllocator.getPReg("sp"), new StackOffset(stackParam), "get param\n");
+            Lw lw = new Lw(paramVReg, regManager.getPReg("sp"), new StackOffset(stackParam), "get param\n");
             currentFunction.initBlock.addIns(lw);
         }
         currentFunction.raStack = new StackVal();
         currentFunction.stack.add(0, currentFunction.raStack); //ra
-        currentFunction.exitBlock = new ASMBlock(".L-" + node.irFuncName.substring(1) + "-exit", "exit",0);
+        currentFunction.exitBlock = new ASMBlock(".L-" + node.irFuncName.substring(1) + "-exit", "exit", 0, 1);
         currentFunction.blocks.add(currentFunction.exitBlock);
         if (!currentFunction.funcName.equals("main")) {
-            for (var reg : ValueAllocator.calleeSaveRegs) {
-                currentFunction.exitBlock.addIns(new Mv(reg, valueAllocator.calleeSaveTo.get(reg)));
+            for (var reg : RegManager.calleeSaveRegs) {
+                currentFunction.exitBlock.addIns(new Mv(reg, regManager.calleeSaveTo.get(reg)));
             }
         }
     }
 
-    void functionExit(){ //在此处加入的指令是无需寄存器分配的指令，并且需要在寄存器分配全部结束以后才能确定栈的长度并执行
+    void functionExit() { //在此处加入的指令是无需寄存器分配的指令，并且需要在寄存器分配全部结束以后才能确定栈的长度并执行
         currentBlock = currentFunction.exitBlock;
         if (currentFunction.raStack != null) {
-            currentBlock.addIns(new Lw(valueAllocator.getPReg("ra"),valueAllocator.getPReg("sp"),new Imm(currentFunction.raStack.offset),"load return address\n"));
+            currentBlock.addIns(new Lw(regManager.getPReg("ra"), regManager.getPReg("sp"), new Imm(currentFunction.raStack.offset), "load return address\n"));
         }
-        if(!currentFunction.stack.isEmpty()){
+        if (!currentFunction.stack.isEmpty()) {
             int length = (currentFunction.stack.size() + 3) / 4 * 16;
-            currentBlock.addIns(new ASMarithmetic(valueAllocator.getPReg("sp"),valueAllocator.getPReg("sp"),new Imm(length),"add"));
+            currentBlock.addIns(new ASMarithmetic(regManager.getPReg("sp"), regManager.getPReg("sp"), new Imm(length), "add"));
         }
         currentBlock.addIns(new Ret());
     }
@@ -208,7 +209,7 @@ public class InsSelector implements IRVisitor {
     public void visit(IRFunction node) {
         functionInit(node);
         for (var basicBlock : node.blocks) { //symbol collect
-            ASMBlock block = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), basicBlock.label,basicBlock.succs.size());
+            ASMBlock block = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), basicBlock.label, basicBlock.succs.size(), basicBlock.loopDepth);
             currentFunction.blocks.add(block);
             currentFunction.irName2Block.put(basicBlock.label, block);
         }
@@ -223,7 +224,7 @@ public class InsSelector implements IRVisitor {
         }
         if (currentFunction.maxArgNum >= 0) {//非叶函数
             StackOffset offset = new StackOffset(currentFunction.raStack);
-            Sw raStore = new Sw(valueAllocator.getPReg("ra"), valueAllocator.getPReg("sp"), offset, "store ra\n");
+            Sw raStore = new Sw(regManager.getPReg("ra"), regManager.getPReg("sp"), offset, "store ra\n");
             currentFunction.initBlock.addIns(raStore);
         } else {
             currentFunction.stack.remove(0); //删去raStack
@@ -234,17 +235,19 @@ public class InsSelector implements IRVisitor {
         for (int i = 0; i < stackarg; ++i) {
             currentFunction.stack.add(0, new StackVal());
         }
-        valueAllocator.irReg2asmReg.clear();
-        valueAllocator.virtualRegs.clear();
-        valueAllocator.irVar2Stack.clear();
-        NaiveRegAllocator naiveRegAllocator = new NaiveRegAllocator(valueAllocator);
-        naiveRegAllocator.visit(currentFunction); //将每个函数中的虚拟寄存器分配到栈上
+//        NaiveRegAllocator naiveRegAllocator = new NaiveRegAllocator(regManager);
+//        naiveRegAllocator.visit(currentFunction); //将每个函数中的虚拟寄存器分配到栈上
+        RegAllocater regAllocater = new RegAllocater(currentFunction,regManager);
+        regAllocater.allocate();
         getOffset(currentFunction);
         if (!currentFunction.stack.isEmpty()) {
             int length = (currentFunction.stack.size() + 3) / 4 * 16;
-            currentFunction.initBlock.addFirst(new ASMarithmetic(valueAllocator.getPReg("sp"), valueAllocator.getPReg("sp"), new Imm(-length), "add")); //此时才能确定栈的长度
+            currentFunction.initBlock.addFirst(new ASMarithmetic(regManager.getPReg("sp"), regManager.getPReg("sp"), new Imm(-length), "add")); //此时才能确定栈的长度
         }
         functionExit();
+        regManager.irReg2asmReg.clear();
+        regManager.virtualRegs.clear();
+        regManager.irVar2Stack.clear();
     }
 
     void collectBranchCond(BasicBlock node) {
@@ -274,7 +277,7 @@ public class InsSelector implements IRVisitor {
 
     @Override
     public void visit(AllocaIns node) {
-        var stackVal = valueAllocator.getStackVal(node.var.name);
+        var stackVal = regManager.getStackVal(node.var.name);
         currentFunction.stack.add(stackVal);
     }
 
@@ -291,12 +294,12 @@ public class InsSelector implements IRVisitor {
             } else {
                 currentBlock.addIns(new Lw(rd, gv, comment));
             }
-        } else if (valueAllocator.irVar2Stack.containsKey(node.ptr)) { //从局部变量中Load
-            StackVal sv = valueAllocator.irVar2Stack.get(node.ptr);
+        } else if (regManager.irVar2Stack.containsKey(node.ptr)) { //从局部变量中Load
+            StackVal sv = regManager.irVar2Stack.get(node.ptr);
             if (size == 1) {
-                currentBlock.addIns(new Lb(rd, valueAllocator.getPReg("sp"), new StackOffset(sv), comment));
+                currentBlock.addIns(new Lb(rd, regManager.getPReg("sp"), new StackOffset(sv), comment));
             } else {
-                currentBlock.addIns(new Lw(rd, valueAllocator.getPReg("sp"), new StackOffset(sv), comment));
+                currentBlock.addIns(new Lw(rd, regManager.getPReg("sp"), new StackOffset(sv), comment));
             }
         } else { //从一个储存在寄存器中的指针中load
             Reg rs = getReg(node.ptr);
@@ -316,16 +319,16 @@ public class InsSelector implements IRVisitor {
         if (currentModule.gbIr2Asm.containsKey(node.ptr)) {
             GlobalVal gv = currentModule.gbIr2Asm.get(node.ptr);
             if (size == 1) {
-                currentBlock.addIns(new Sb(rs, gv, valueAllocator.getPReg("t6"), comment));
+                currentBlock.addIns(new Sb(rs, gv, regManager.getPReg("t6"), comment));
             } else {
-                currentBlock.addIns(new Sw(rs, gv, valueAllocator.getPReg("t6"), comment));
+                currentBlock.addIns(new Sw(rs, gv, regManager.getPReg("t6"), comment));
             }
-        } else if (valueAllocator.irVar2Stack.containsKey(node.ptr)) {
-            StackVal sv = valueAllocator.irVar2Stack.get(node.ptr);
+        } else if (regManager.irVar2Stack.containsKey(node.ptr)) {
+            StackVal sv = regManager.irVar2Stack.get(node.ptr);
             if (size == 1) {
-                currentBlock.addIns(new Sb(rs, valueAllocator.getPReg("sp"), new StackOffset(sv), comment));
+                currentBlock.addIns(new Sb(rs, regManager.getPReg("sp"), new StackOffset(sv), comment));
             } else {
-                currentBlock.addIns(new Sw(rs, valueAllocator.getPReg("sp"), new StackOffset(sv), comment));
+                currentBlock.addIns(new Sw(rs, regManager.getPReg("sp"), new StackOffset(sv), comment));
             }
         } else {
             Reg rd = getReg(node.ptr);
@@ -408,7 +411,7 @@ public class InsSelector implements IRVisitor {
             if (node.operator.equals("icmp ne")) {
                 currentBlock.addIns(new Slt(rd, rd, new Imm(1), true));
             } else {
-                currentBlock.addIns(new Slt(rd, rd, valueAllocator.getPReg("zero"), true));
+                currentBlock.addIns(new Slt(rd, rd, regManager.getPReg("zero"), true));
             }
         } else {
             if (node.operator.equals("icmp slt") || node.operator.equals("icmp sge")) {
@@ -434,16 +437,16 @@ public class InsSelector implements IRVisitor {
     public void visit(CallIns node) {
         currentFunction.maxArgNum = max(currentFunction.maxArgNum, node.args.size());
         for (int i = 0; i < 8 && i < node.args.size(); ++i) {
-            toExpectReg(node.args.get(i), valueAllocator.getPReg("a" + i), currentBlock, false);
+            toExpectReg(node.args.get(i), regManager.getPReg("a" + i), currentBlock, false);
         }
         for (int i = 8; i < node.args.size(); ++i) {
-            Sw sw = new Sw(getReg(node.args.get(i)), valueAllocator.getPReg("sp"), new Imm((i - 8) * 4), "put param\n");
+            Sw sw = new Sw(getReg(node.args.get(i)), regManager.getPReg("sp"), new Imm((i - 8) * 4), "put param\n");
             currentBlock.addIns(sw);
         }
         Call call = new Call(node.funcName.substring(1));
         currentBlock.addIns(call);
         if (!node.returnType.equals(irVoidType)) {
-            Mv mv = new Mv(getReg(node.result), valueAllocator.getPReg("a0"));
+            Mv mv = new Mv(getReg(node.result), regManager.getPReg("a0"));
             currentBlock.addIns(mv);
         }
     }
@@ -454,10 +457,10 @@ public class InsSelector implements IRVisitor {
         Reg rd = getReg(node.valuePtr);
         Reg idx1 = getReg(node.idx1);
         boolean ifShift = false;
-        if (idx1 != valueAllocator.getPReg("zero")) { //idx1!=0
+        if (idx1 != regManager.getPReg("zero")) { //idx1!=0
             ifShift = true;
             if (!node.type.equals(irBoolType)) {
-                Reg slidx1 = valueAllocator.getNewVirtualReg();
+                Reg slidx1 = regManager.getNewVirtualReg();
                 currentBlock.addIns(new ASMarithmetic(slidx1, idx1, new Imm(2), "shl"));
                 currentBlock.addIns(new ASMarithmetic(rd, ptr, slidx1, "add", node.toString()));
             } else {
@@ -465,9 +468,9 @@ public class InsSelector implements IRVisitor {
             }
         } else if (node.idx2 != null) {
             Reg idx2 = getReg(node.idx2);
-            if (idx2 != valueAllocator.getPReg("zero")) { //idx2!=0
+            if (idx2 != regManager.getPReg("zero")) { //idx2!=0
                 ifShift = true;
-                Reg slidx2 = valueAllocator.getNewVirtualReg();
+                Reg slidx2 = regManager.getNewVirtualReg();
                 currentBlock.addIns(new ASMarithmetic(slidx2, idx2, new Imm(2), "shl"));
                 currentBlock.addIns(new ASMarithmetic(rd, ptr, slidx2, "add", node.toString()));
             }
@@ -481,7 +484,7 @@ public class InsSelector implements IRVisitor {
     @Override
     public void visit(ReturnIns node) {
         if (!node.type.equals(irVoidType)) {
-            toExpectReg(node.value, valueAllocator.getPReg("a0"), currentBlock, false);  //将返回值储存至ra寄存器
+            toExpectReg(node.value, regManager.getPReg("a0"), currentBlock, false);  //将返回值储存至ra寄存器
         }
         currentBlock.exitInses.add(new J(currentFunction.exitBlock));
         currentBlock.succs.add(currentFunction.exitBlock);
@@ -493,7 +496,7 @@ public class InsSelector implements IRVisitor {
     @Override
     public void visit(PhiIns node) {
         Reg rd = getReg(node.result);
-        Reg tmp = valueAllocator.getNewVirtualReg();
+        Reg tmp = regManager.getNewVirtualReg();
         ASMBlock block1 = currentFunction.irName2Block.get(node.blocks.get(0).label);
         ASMBlock block2 = currentFunction.irName2Block.get(node.blocks.get(1).label);
         if (block1.succSize == 1) {
@@ -503,7 +506,7 @@ public class InsSelector implements IRVisitor {
             if (mBlock != null) {
                 toExpectReg(node.values.get(0), tmp, mBlock, false);
             } else {
-                mBlock = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), "intermediate block",1);
+                mBlock = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), "intermediate block", 1, currentBlock.loopDepth);
                 currentFunction.blocks.add(mBlock);
                 replaceBlock(block1.exitInses, currentBlock, mBlock);
                 mBlock.exitInses.add(new J(currentBlock));
@@ -518,7 +521,7 @@ public class InsSelector implements IRVisitor {
             if (mBlock != null) {
                 toExpectReg(node.values.get(1), tmp, mBlock, false);
             } else {
-                mBlock = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), "intermediate block",1);
+                mBlock = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), "intermediate block", 1, currentBlock.loopDepth);
                 currentFunction.blocks.add(mBlock);
                 replaceBlock(block2.exitInses, currentBlock, mBlock);
                 mBlock.exitInses.add(new J(currentBlock));

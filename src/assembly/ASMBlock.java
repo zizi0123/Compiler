@@ -11,6 +11,8 @@ public class ASMBlock {
 
     public String comment;
 
+    public int loopDepth = 0;
+
     public int succSize; //在未将所有块确定前，就需要确定后继节点的数目，以便phi指令的分析
     public ArrayList<ASMBlock> succs = new ArrayList<>();
     public ArrayList<ASMBlock> preds = new ArrayList<>();
@@ -25,10 +27,11 @@ public class ASMBlock {
 
     public ArrayList<ASMIns> exitInses = new ArrayList<>();
 
-    public ASMBlock(String n, String c,int s) {
+    public ASMBlock(String n, String c, int s, int l) {
         name = n;
         comment = c;
         succSize = s;
+        loopDepth = l;
     }
 
     public void addIns(ASMIns i) {
@@ -36,17 +39,17 @@ public class ASMBlock {
     }
 
     public void addFirst(ASMIns i) {
-        instructions.add(0,i);
+        instructions.add(0, i);
     }
 
     public void print() {
-        if(instructions.isEmpty() && exitInses.isEmpty()) return;
+        if (instructions.isEmpty() && exitInses.isEmpty()) return;
         System.out.print(name + ":\t#" + comment + "\n");
         for (var ins : instructions) {
             System.out.print("\t" + ins.toString());
         }
         if (!exitInses.isEmpty()) {
-            for(var ins:exitInses){
+            for (var ins : exitInses) {
                 System.out.print("\t" + ins.toString());
             }
         }

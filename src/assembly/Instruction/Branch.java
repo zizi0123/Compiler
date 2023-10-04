@@ -41,4 +41,10 @@ public class Branch extends ASMIns {
     public Reg getDef() {
         return null;
     }
+
+    @Override
+    public void replace(Reg olde, Reg newe) {
+        rs1 = (rs1 == olde) ? newe : rs1;
+        rs2 = (rs2 == olde) ? newe : rs2;
+    }
 }

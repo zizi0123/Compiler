@@ -42,5 +42,10 @@ public class Li extends ASMIns {
         return rd;
     }
 
+    @Override
+    public void replace(Reg olde, Reg newe) {
+        rd = (rd == olde) ? newe : rd;
+    }
+
 
 }

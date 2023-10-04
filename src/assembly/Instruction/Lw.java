@@ -56,4 +56,12 @@ public class Lw extends ASMIns {
     public Reg getDef() {
         return rd;
     }
+
+    @Override
+    public void replace(Reg olde, Reg newe) {
+        rd = (rd == olde) ? newe : rd;
+        if (rs != null) {
+            rs = (rs == olde) ? newe : rs;
+        }
+    }
 }

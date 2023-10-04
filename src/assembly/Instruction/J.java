@@ -32,4 +32,8 @@ public class J extends ASMIns{
     public Reg getDef() {
         return null;
     }
+
+    @Override
+    public void replace(Reg olde, Reg newe) {
+    }
 }

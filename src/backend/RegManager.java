@@ -8,18 +8,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-public class ValueAllocator {
+public class RegManager {
 
     HashMap<PhysicalReg, VirtualReg> calleeSaveTo = new HashMap<>(); //被保存的callee save reg
-    PhysicalReg[] regs = new PhysicalReg[32];
-    static HashMap<String, PhysicalReg> ASMName2Preg = new HashMap<>();
-    ArrayList<VirtualReg> virtualRegs = new ArrayList<>();
+    public static PhysicalReg[] regs = new PhysicalReg[32];
+    public static HashMap<String, PhysicalReg> ASMName2Preg = new HashMap<>();
+    public ArrayList<VirtualReg> virtualRegs = new ArrayList<>();
     public static ArrayList<PhysicalReg> callerSaveRegs = new ArrayList<>();
     public static ArrayList<PhysicalReg> calleeSaveRegs = new ArrayList<>();
     public HashMap<String,VirtualReg> irReg2asmReg = new HashMap<>();
     public HashMap<String, StackVal> irVar2Stack = new HashMap<>();
 
-    ValueAllocator() {
+    RegManager() {
         for (int i = 0; i < 32; ++i) {
             regs[i] = new PhysicalReg(i);
         }

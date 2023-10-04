@@ -48,10 +48,10 @@ public class Sw extends ASMIns {
     public HashSet<Reg> getUse() {
         HashSet<Reg> result = new HashSet<>();
         result.add(rs);
-        if(rd!=null){
+        if (rd != null) {
             result.add(rd);
         }
-        if(rt!=null){
+        if (rt != null) {
             result.add(rt);
         }
         return result;
@@ -59,8 +59,20 @@ public class Sw extends ASMIns {
 
     @Override
     public Reg getDef() {
-        return null;
+        if (rt != null) {
+            return rt;
+        } else {
+            return null;
+        }
     }
-    //todo 是否应该在这里加入rt?
-
+    @Override
+    public void replace(Reg olde, Reg newe) {
+        rs = (rs == olde) ? newe : rs;
+        if (rd != null) {
+            rd = (rd == olde) ? newe : rd;
+        }
+        if (rt != null) {
+            rt = (rt == olde) ? newe : rt;
+        }
+    }
 }

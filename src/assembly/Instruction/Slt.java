@@ -64,4 +64,13 @@ public class Slt extends ASMIns {
         return rd;
     }
 
+    @Override
+    public void replace(Reg olde, Reg newe) {
+        rd = (rd == olde) ? newe : rd;
+        rs1 = (rs1 == olde) ? newe : rs1;
+        if (rs2 != null) {
+            rs2 = (rs2 == olde) ? newe : rs2;
+        }
+    }
+
 }

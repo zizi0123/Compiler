@@ -1,5 +1,6 @@
 package assembly.Instruction;
 
+import IR.Entity.Entity;
 import assembly.ASMVisitor;
 import assembly.operand.Reg;
 
@@ -11,5 +12,8 @@ public abstract class ASMIns {
     public abstract void accept(ASMVisitor visitor);
     public abstract HashSet<Reg> getUse();
     public abstract Reg getDef();
+
+    public abstract void replace(Reg olde, Reg newe);
+
 
 }

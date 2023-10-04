@@ -9,7 +9,6 @@ import assembly.operand.Reg;
 import assembly.operand.StackOffset;
 import assembly.operand.StackVal;
 import assembly.operand.VirtualReg;
-import backend.ValueAllocator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,10 +19,10 @@ public class NaiveRegAllocator implements ASMVisitor {
 
     protected ASMFunction currentFunction;
     protected ASMBlock currentBlock;
-    ValueAllocator valueAllocator;
+    RegManager regManager;
 
-    public NaiveRegAllocator(ValueAllocator valueAllocator) {
-        this.valueAllocator = valueAllocator;
+    public NaiveRegAllocator(RegManager regManager) {
+        this.regManager = regManager;
     }
 
     StackVal getStack(VirtualReg vreg) {
@@ -38,8 +37,8 @@ public class NaiveRegAllocator implements ASMVisitor {
 
     Reg loadInt1(VirtualReg vreg) { //把值从vreg对应的栈中load出来，放入一个临时寄存器t1
         StackVal stackVal = getStack(vreg);
-        Reg rd = valueAllocator.getPReg("t1");
-        Reg rs = valueAllocator.getPReg("sp");
+        Reg rd = regManager.getPReg("t1");
+        Reg rs = regManager.getPReg("sp");
         if (vreg.size == 1) {
             currentBlock.addIns(new Lb(rd, rs, new StackOffset(stackVal), "load in t1\n"));
         } else {
@@ -50,8 +49,8 @@ public class NaiveRegAllocator implements ASMVisitor {
 
     Reg loadInt2(VirtualReg vreg) { //把值从vreg对应的栈中load出来，放入一个临时寄存器t2
         StackVal stackVal = getStack(vreg);
-        Reg rd = valueAllocator.getPReg("t2");
-        Reg rs = valueAllocator.getPReg("sp");
+        Reg rd = regManager.getPReg("t2");
+        Reg rs = regManager.getPReg("sp");
         if (vreg.size == 1) {
             currentBlock.addIns(new Lb(rd, rs, new StackOffset(stackVal), "load in t1\n"));
         } else {
@@ -61,8 +60,8 @@ public class NaiveRegAllocator implements ASMVisitor {
     }
 
     Reg storeFromt0(VirtualReg vreg) {
-        Reg rs = valueAllocator.getPReg("t0");
-        Reg rd = valueAllocator.getPReg("sp");
+        Reg rs = regManager.getPReg("t0");
+        Reg rd = regManager.getPReg("sp");
         StackVal stackVal = getStack(vreg);
         if (vreg.size == 1) {
             currentBlock.addIns(new Sb(rs, rd, new StackOffset(stackVal), "store from t0\n"));

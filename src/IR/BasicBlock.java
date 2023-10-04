@@ -22,9 +22,12 @@ public class BasicBlock {
     public HashSet<BasicBlock> domTreeSons = new HashSet<>();
     public ArrayList<PhiIns> phis = new ArrayList<>();
 
+    public int loopDepth = 0;
 
-    public BasicBlock(String name) {
+
+    public BasicBlock(String name,int d) {
         this.label = name;
+        loopDepth = d;
     }
 
     public void addIns(Instruction ins) {

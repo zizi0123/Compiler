@@ -59,7 +59,22 @@ public class Sb extends ASMIns {
 
     @Override
     public Reg getDef() {
-        return null;
+        if (rt != null) {
+            return rt;
+        } else {
+            return null;
+        }
     }
-    //todo 是否应该在这里加入rt?
+    @Override
+    public void replace(Reg olde, Reg newe) {
+        rs = (rs == olde) ? newe : rs;
+        if (rd != null) {
+            rd = (rd == olde) ? newe : rd;
+        }
+        if (rt != null) {
+            rt = (rt == olde) ? newe : rt;
+        }
+    }
+
+
 }
