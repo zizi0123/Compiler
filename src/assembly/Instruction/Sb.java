@@ -48,23 +48,24 @@ public class Sb extends ASMIns {
     public HashSet<Reg> getUse() {
         HashSet<Reg> result = new HashSet<>();
         result.add(rs);
-        if(rd!=null){
+        if (rd != null) {
             result.add(rd);
         }
-        if(rt!=null){
+        if (rt != null) {
             result.add(rt);
         }
         return result;
     }
 
     @Override
-    public Reg getDef() {
+    public HashSet<Reg> getDef() {
+        HashSet<Reg> result = new HashSet<>();
         if (rt != null) {
-            return rt;
-        } else {
-            return null;
+            result.add(rt);
         }
+        return result;
     }
+
     @Override
     public void replace(Reg olde, Reg newe) {
         rs = (rs == olde) ? newe : rs;

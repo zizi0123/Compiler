@@ -3,6 +3,7 @@ package assembly.Instruction;
 import assembly.ASMFunction;
 import assembly.ASMVisitor;
 import assembly.operand.Reg;
+import backend.RegManager;
 
 import java.util.HashSet;
 
@@ -23,12 +24,14 @@ public class Ret extends ASMIns {
 
     @Override
     public HashSet<Reg> getUse() {
-        return new HashSet<>();
+        HashSet<Reg> result = new HashSet<>();
+        result.add(RegManager.regs[10]);
+        return result;
     }
 
     @Override
-    public Reg getDef() {
-        return null;
+    public HashSet<Reg> getDef() {
+        return new HashSet<>();
     }
 
     @Override

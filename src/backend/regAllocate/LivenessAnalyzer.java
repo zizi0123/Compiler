@@ -19,12 +19,19 @@ public class LivenessAnalyzer {
         for (ASMBlock block : function.blocks) {
             block.use.clear();
             block.def.clear();
+            block.in.clear();
+            block.out.clear();
+            block.processed = false;
             ArrayList<ASMIns> inses = new ArrayList<>(block.instructions);
             inses.addAll(block.exitInses);
             for (var inst : inses) {
-                block.use.addAll(inst.getUse());
-                if (inst.getDef() != null) {
-                    block.def.add(inst.getDef());
+                for(var use:inst.getUse()){
+                    if(!block.def.contains(use)){
+                        block.use.add(use);
+                    }
+                }
+                for(var def:inst.getDef()){
+                    block.def.add(def);
                 }
             }
         }
@@ -42,12 +49,13 @@ public class LivenessAnalyzer {
                 for (var s : top.succs) {
                     top.out.addAll(s.in);
                 }
-                top.in.addAll(top.out);
+                top.in.addAll(top.use);
                 var tmp = new HashSet<>(top.out);
                 tmp.removeAll(top.def);
                 top.in.addAll(tmp);
-                if (!top.in.equals(oldIn) || !top.out.equals(oldOut)) {
+                if (!top.processed || !top.in.equals(oldIn) || !top.out.equals(oldOut)) {
                     change = true;
+                    top.processed = true;
                     toProcess.addAll(top.preds);
                 }
             }

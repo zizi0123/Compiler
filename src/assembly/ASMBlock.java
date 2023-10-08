@@ -11,6 +11,8 @@ public class ASMBlock {
 
     public String comment;
 
+    public boolean processed;
+
     public int loopDepth = 0;
 
     public int succSize; //在未将所有块确定前，就需要确定后继节点的数目，以便phi指令的分析

@@ -32,8 +32,10 @@ public class Mv extends ASMIns{
     }
 
     @Override
-    public Reg getDef() {
-        return rd;
+    public HashSet<Reg> getDef() {
+        HashSet<Reg> result = new HashSet<>();
+        result.add(rd);
+        return result;
     }
 
     @Override

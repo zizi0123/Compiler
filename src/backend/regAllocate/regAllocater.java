@@ -41,7 +41,7 @@ public class RegAllocater {
     LinkedHashSet<Mv> activeMoves = new LinkedHashSet<>();
 
 
-    HashSet<Edge> adjSet = new HashSet<>();
+//    HashSet<Edge> adjSet = new HashSet<>();
     HashMap<Reg, HashSet<Reg>> adjList = new HashMap<>();
     HashMap<Reg, Integer> degree = new HashMap<>();
     HashMap<Reg, HashSet<Mv>> moveList = new HashMap<>();
@@ -100,14 +100,14 @@ public class RegAllocater {
         workListMoves.clear();
         activeMoves.clear();
 
-        adjSet.clear();
+//        adjSet.clear();
         adjList.clear();
         degree.clear();
         moveList.clear();
         alias.clear();
         color.clear();
 
-        for (int i = 0; i < 31; ++i) {
+        for (int i = 0; i < 32; ++i) {
             var reg = RegManager.regs[i];
             preColored.add(reg);
             adjList.put(reg, new HashSet<>());
@@ -128,10 +128,8 @@ public class RegAllocater {
             inses.addAll(block.exitInses);
             double weight = Math.pow(10, block.loopDepth);
             for (var inst : inses) {
-                var reg = inst.getDef();
-                if (reg != null) {
-                    reg.useDefTime += weight;
-                }
+                for (var dreg : inst.getDef())
+                    dreg.useDefTime += weight;
                 for (var ureg : inst.getUse())
                     ureg.useDefTime += weight;
             }
@@ -140,11 +138,7 @@ public class RegAllocater {
 
     void addEdge(Reg u, Reg v) {
         if (u.equals(v)) return;
-        Edge edge1 = new Edge(u, v);
-        Edge edge2 = new Edge(v, u);
-        if (!adjSet.contains(edge1)) {
-            adjSet.add(edge1);
-            adjSet.add(edge2);
+        if (!adjList.get(u).contains(v) || !adjList.get(v).contains(u)){
             if (!preColored.contains(u)) {
                 adjList.get(u).add(v);
                 int deg = degree.get(u) + 1;
@@ -156,7 +150,6 @@ public class RegAllocater {
                 degree.put(v, deg);
             }
         }
-
     }
 
 
@@ -173,13 +166,13 @@ public class RegAllocater {
                     moveList.get(mv.rd).add(mv);
                     workListMoves.add(mv);
                 }
-                var def = I.getDef();
-                if (def != null) {
+                live.addAll(I.getDef());
+                for (var def : I.getDef()) {
                     for (var l : live) {
                         addEdge(def, l);
                     }
-                    live.remove(def);
                 }
+                live.removeAll(I.getDef());
                 live.addAll(I.getUse());
             }
         }
@@ -255,7 +248,7 @@ public class RegAllocater {
         }
     }
 
-    void addSimplifyList(Reg r) { //在coalesce中被处理过的节点，如果满足要求，将其加入simplifyWorkList中
+    void tryAddSimplifyList(Reg r) { //在coalesce中被消去mv指令的节点，如果满足要求，将其加入simplifyWorkList中
         if (!preColored.contains(r) && !moveRelated(r) && degree.get(r) < K) {
             freezeWorkList.remove(r);
             simplifyWorkList.add(r);
@@ -264,7 +257,7 @@ public class RegAllocater {
 
     boolean George(Reg u, Reg v) {
         for (var adj : adjacent(v)) {
-            if (!(degree.get(adj) < K || preColored.contains(adj) || adjSet.contains(new Edge(adj, u)))) return false;
+            if (!(degree.get(adj) < K || preColored.contains(adj) || adjList.get(adj).contains(u) || adjList.get(u).contains(adj))) return false;
         }
         return true;
     }
@@ -280,7 +273,7 @@ public class RegAllocater {
     }
 
     void combine(Reg u, Reg v) { //消去v
-        if (freezeWorkList.contains(v)) {
+        if (freezeWorkList.contains(v)) { //v is mv-related,不会在simplifyWL中
             freezeWorkList.remove(v);
         } else {
             spillWorkList.remove(v);
@@ -303,27 +296,30 @@ public class RegAllocater {
 
     void Coalesce() {
         Mv mv = workListMoves.iterator().next();
-        Edge edge;
-        if (preColored.contains(mv.rs)) { //尽量满足v不是preColored reg
-            edge = new Edge(mv.rs, mv.rd);
+        Reg rs = getAlias(mv.rs);
+        Reg rd = getAlias(mv.rd);
+        Reg u,v;
+        if (preColored.contains(rs)) { //尽量满足v不是preColored reg
+            u = rs;
+            v = rd;
         } else {
-            edge = new Edge(mv.rd, mv.rs);
+            v = rs;
+            u = rd;
         }
         workListMoves.remove(mv);
-        Reg u = edge.u, v = edge.v;
         if (u == v) {
             coalescedMoves.add(mv);
-            addSimplifyList(u);
-        } else if (preColored.contains(v) || adjSet.contains(edge) || u.equals(regManager.getPReg("zero"))) {//zero寄存器只能储存0，不可以被合并
+            tryAddSimplifyList(u);
+        } else if (preColored.contains(v) || adjList.get(v).contains(u) || adjList.get(u).contains(v) || u.equals(regManager.getPReg("zero"))) {//zero寄存器只能储存0，不可以被合并
             constrainedMoves.add(mv);
-            addSimplifyList(u);
-            addSimplifyList(v);
+            tryAddSimplifyList(u);
+            tryAddSimplifyList(v);
         } else {
             //v 不是 preColored reg
             if ((preColored.contains(u) && George(u, v)) || (!preColored.contains(u) && Briggs(u, v))) {//将v消去
                 coalescedMoves.add(mv);
                 combine(u, v);
-                addSimplifyList(u);
+                tryAddSimplifyList(u);
             } else { //在本次coalesce中还不满足conservative mv标准的要求，无法被合并的mv指令
                 activeMoves.add(mv);
             }
@@ -372,13 +368,16 @@ public class RegAllocater {
         }
         spillWorkList.remove(target);
         simplifyWorkList.add(target);
-        freezeMoves(target);
+        freezeMoves(target); //要把这个node从图上去掉，加入栈中，因此也需要把与其相关的所有mv指令去除
     }
 
     void AssignColor() {
         while (!selectStack.isEmpty()) {
             Reg r = selectStack.pop();
-            HashSet<PhysicalReg> availableColor = new HashSet<>(List.of(RegManager.regs));
+            HashSet<PhysicalReg> availableColor = new HashSet<>();
+            for (int i = 5; i < 32; ++i) {
+                availableColor.add(RegManager.regs[i]);
+            }
             for (var adj : adjList.get(r)) {
                 Reg adjColor = color.get(getAlias(adj));
                 if (adjColor != null) {
@@ -434,6 +433,7 @@ public class RegAllocater {
     void RewriteFunction(HashSet<Reg> spilledNodes) {
         for (var vreg : spilledNodes) {
             getStack((VirtualReg) vreg); //allocate a stack space
+            regManager.virtualRegs.remove(vreg);
         }
         for (var block : function.blocks) {
             currentBlock = block;
@@ -451,9 +451,10 @@ public class RegAllocater {
                     }
                 }
                 currentBlock.instructions.add(ins);
-                var def = ins.getDef();
-                if (def != null && spilledNodes.contains(def)) {
-                    ins.replace(def, store((VirtualReg) def));
+                for (var def : ins.getDef()) {
+                    if (spilledNodes.contains(def)) {
+                        ins.replace(def, store((VirtualReg) def));
+                    }
                 }
             }
         }
@@ -465,15 +466,14 @@ public class RegAllocater {
                 for (var use : ins.getUse()) {
                     ins.replace(use, color.get(use));
                 }
-                var def = ins.getDef();
-                if (def != null) {
+                for(var def:ins.getDef()) {
                     ins.replace(def, color.get(def));
                 }
             }
             var inses = new ArrayList<>(block.instructions);
             block.instructions.clear();
-            for(var ins:inses){
-                if(!(ins instanceof Mv mv && (mv.rd == mv.rs))){
+            for (var ins : inses) {
+                if (!(ins instanceof Mv mv && (mv.rd == mv.rs))) {
                     block.instructions.add(ins);
                 }
             }
@@ -481,22 +481,19 @@ public class RegAllocater {
                 for (var use : ins.getUse()) {
                     ins.replace(use, color.get(use));
                 }
-                var def = ins.getDef();
-                if (def != null) {
+                for(var def:ins.getDef()){
                     ins.replace(def, color.get(def));
                 }
             }
             inses = new ArrayList<>(block.exitInses);
             block.exitInses.clear();
-            for(var ins:inses){
-                if(!(ins instanceof Mv mv && (mv.rd == mv.rs))){
+            for (var ins : inses) {
+                if (!(ins instanceof Mv mv && (mv.rd == mv.rs))) {
                     block.exitInses.add(ins);
                 }
             }
         }
     }
-
-
 
 
 }

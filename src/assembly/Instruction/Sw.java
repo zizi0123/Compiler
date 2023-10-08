@@ -58,13 +58,14 @@ public class Sw extends ASMIns {
     }
 
     @Override
-    public Reg getDef() {
+    public HashSet<Reg> getDef() {
+        HashSet<Reg> result = new HashSet<>();
         if (rt != null) {
-            return rt;
-        } else {
-            return null;
+            result.add(rt);
         }
+        return result;
     }
+
     @Override
     public void replace(Reg olde, Reg newe) {
         rs = (rs == olde) ? newe : rs;

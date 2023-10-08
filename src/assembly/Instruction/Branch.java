@@ -38,10 +38,10 @@ public class Branch extends ASMIns {
     }
 
     @Override
-    public Reg getDef() {
-        return null;
+    public HashSet<Reg> getDef() {
+        HashSet<Reg> result = new HashSet<>();
+        return result;
     }
-
     @Override
     public void replace(Reg olde, Reg newe) {
         rs1 = (rs1 == olde) ? newe : rs1;

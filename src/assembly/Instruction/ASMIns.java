@@ -11,7 +11,7 @@ public abstract class ASMIns {
     public abstract String toString();
     public abstract void accept(ASMVisitor visitor);
     public abstract HashSet<Reg> getUse();
-    public abstract Reg getDef();
+    public abstract HashSet<Reg> getDef();
 
     public abstract void replace(Reg olde, Reg newe);
 

@@ -29,8 +29,8 @@ public class J extends ASMIns{
     }
 
     @Override
-    public Reg getDef() {
-        return null;
+    public HashSet<Reg> getDef() {
+        return new HashSet<>();
     }
 
     @Override

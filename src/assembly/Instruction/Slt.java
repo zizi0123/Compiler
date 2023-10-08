@@ -33,7 +33,7 @@ public class Slt extends ASMIns {
         String result = "slt";
         if (imm != null) result += "i";
         if (unsigned) result += "u";
-        result+="  ";
+        result += "  ";
         result += rd.toString() + ", " + rs1.toString() + ", ";
         if (imm != null) {
             result += imm.toString();
@@ -53,15 +53,17 @@ public class Slt extends ASMIns {
     public HashSet<Reg> getUse() {
         HashSet<Reg> result = new HashSet<>();
         result.add(rs1);
-        if(rs2!=null){
+        if (rs2 != null) {
             result.add(rs2);
         }
         return result;
     }
 
     @Override
-    public Reg getDef() {
-        return rd;
+    public HashSet<Reg> getDef() {
+        HashSet<Reg> result = new HashSet<>();
+        result.add(rd);
+        return result;
     }
 
     @Override

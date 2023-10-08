@@ -202,7 +202,7 @@ public class InsSelector implements IRVisitor {
             int length = (currentFunction.stack.size() + 3) / 4 * 16;
             currentBlock.addIns(new ASMarithmetic(regManager.getPReg("sp"), regManager.getPReg("sp"), new Imm(length), "add"));
         }
-        currentBlock.addIns(new Ret());
+        currentFunction.exitBlock.exitInses.add(new Ret());
     }
 
     @Override
@@ -443,7 +443,7 @@ public class InsSelector implements IRVisitor {
             Sw sw = new Sw(getReg(node.args.get(i)), regManager.getPReg("sp"), new Imm((i - 8) * 4), "put param\n");
             currentBlock.addIns(sw);
         }
-        Call call = new Call(node.funcName.substring(1));
+        Call call = new Call(node.funcName.substring(1),node.args.size());
         currentBlock.addIns(call);
         if (!node.returnType.equals(irVoidType)) {
             Mv mv = new Mv(getReg(node.result), regManager.getPReg("a0"));
@@ -509,7 +509,13 @@ public class InsSelector implements IRVisitor {
                 mBlock = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), "intermediate block", 1, currentBlock.loopDepth);
                 currentFunction.blocks.add(mBlock);
                 replaceBlock(block1.exitInses, currentBlock, mBlock);
+                block1.succs.remove(currentBlock); //succs也会更改！
+                currentBlock.preds.remove(block1);
+                block1.succs.add(mBlock);
+                mBlock.preds.add(block1);
                 mBlock.exitInses.add(new J(currentBlock));
+                mBlock.succs.add(currentBlock);
+                currentBlock.preds.add(mBlock);
                 intermediateBlocks.put(block1.name + currentBlock.name, mBlock);
                 toExpectReg(node.values.get(0), tmp, mBlock, false);
             }
@@ -524,7 +530,13 @@ public class InsSelector implements IRVisitor {
                 mBlock = new ASMBlock(".L-" + currentFunction.funcName + "-" + currentFunction.blocks.size(), "intermediate block", 1, currentBlock.loopDepth);
                 currentFunction.blocks.add(mBlock);
                 replaceBlock(block2.exitInses, currentBlock, mBlock);
+                block2.succs.remove(currentBlock); //succs也会更改！
+                currentBlock.preds.remove(block2);
+                block2.succs.add(mBlock);
+                mBlock.preds.add(block2);
                 mBlock.exitInses.add(new J(currentBlock));
+                mBlock.succs.add(currentBlock);
+                currentBlock.preds.add(mBlock);
                 intermediateBlocks.put(block2.name + currentBlock.name, mBlock);
                 toExpectReg(node.values.get(1), tmp, mBlock, false);
             }
